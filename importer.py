@@ -58,7 +58,7 @@ def export_mdb_to_csv(table_name, csv_path):
 
     result = subprocess.run(
         [cscript, "//Nologo", export_vbs, table_name, csv_path],
-        capture_output=True, text=True, creationflags=subprocess.CREW_NO_WINDOW
+        capture_output=True, text=True,         creationflags=subprocess.CREATE_NO_WINDOW
     )
     if result.returncode != 0:
         raise RuntimeError(f"Error exportando {table_name}: {result.stderr}")
