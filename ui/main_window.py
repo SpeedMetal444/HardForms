@@ -77,6 +77,7 @@ class MainWindow(QMainWindow):
         self.table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.table.setAlternatingRowColors(True)
+        self.table.setSortingEnabled(True)
         self.table.horizontalHeader().setStretchLastSection(True)
         self.table.setColumnHidden(0, True)
         self.table.doubleClicked.connect(self._on_view_patient)
@@ -87,6 +88,8 @@ class MainWindow(QMainWindow):
         self.setStatusBar(self.status_bar)
 
     def _load_patients(self, query: str = ""):
+        self.table.setSortingEnabled(False)
+
         if query:
             patients = search_patients(query)
         else:
@@ -100,9 +103,12 @@ class MainWindow(QMainWindow):
             self.table.setItem(i, 3, QTableWidgetItem(p.dni))
             self.table.setItem(i, 4, QTableWidgetItem(p.phone))
             self.table.setItem(i, 5, QTableWidgetItem(p.medical_record_number))
-            self.table.setItem(i, 6, QTableWidgetItem(p.last_study_date))
+            item = QTableWidgetItem(p.last_study_date)
+            item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.table.setItem(i, 6, item)
 
         self.table.resizeColumnsToContents()
+        self.table.setSortingEnabled(True)
         self.status_bar.showMessage(f"{len(patients)} paciente(s)")
 
     def _on_search(self, text: str):

@@ -104,7 +104,7 @@ def delete_patient(patient_id: int):
 
 def get_patient(patient_id: int) -> Patient | None:
     conn = get_connection()
-    row = conn.execute("SELECT * FROM patients WHERE id=?", (patient_id,)).fetchone()
+    row = conn.execute(PATIENTS_SQL + " WHERE p.id=?", (patient_id,)).fetchone()
     conn.close()
     if row is None:
         return None
