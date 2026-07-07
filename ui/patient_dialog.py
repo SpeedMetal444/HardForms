@@ -7,8 +7,8 @@ from PyQt6.QtWidgets import (
     QDialogButtonBox, QGroupBox, QAbstractItemView,
     QTableWidget, QTableWidgetItem, QInputDialog,
 )
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QPixmap
+from PyQt6.QtCore import Qt, QSize
+from PyQt6.QtGui import QPixmap, QIcon
 from models.patient import Patient, ImageAttachment
 from models.diagnosis import Diagnosis
 from database.db import (
@@ -25,7 +25,8 @@ class PatientDialog(QDialog):
         self.attachments: list[ImageAttachment] = []
         self.diagnoses: list[Diagnosis] = []
         self.setWindowTitle("Editar Paciente" if patient_id else "Nuevo Paciente")
-        self.setMinimumSize(850, 750)
+        self.setMinimumSize(900, 750)
+        self.resize(950, 800)
         self._setup_ui()
 
         if patient_id:
@@ -129,16 +130,24 @@ class PatientDialog(QDialog):
         btn_img_layout.addStretch()
         img_layout.addLayout(btn_img_layout)
 
+        img_content = QHBoxLayout()
+
         self.image_list = QListWidget()
+        self.image_list.setViewMode(QListWidget.ViewMode.IconMode)
+        self.image_list.setIconSize(QSize(100, 80))
+        self.image_list.setGridSize(QSize(120, 110))
+        self.image_list.setWordWrap(True)
         self.image_list.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self.image_list.currentRowChanged.connect(self._on_select_image)
-        img_layout.addWidget(self.image_list)
+        self.image_list.setMinimumWidth(260)
+        img_content.addWidget(self.image_list, 2)
 
+        right_panel = QVBoxLayout()
         self.image_preview = QLabel("Vista previa")
         self.image_preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.image_preview.setMinimumHeight(150)
+        self.image_preview.setMinimumHeight(200)
         self.image_preview.setStyleSheet("background-color: #f0f0f0; border: 1px solid #ccc;")
-        img_layout.addWidget(self.image_preview)
+        right_panel.addWidget(self.image_preview, 1)
 
         desc_img_layout = QHBoxLayout()
         desc_img_layout.addWidget(QLabel("Descripción:"))
@@ -146,7 +155,10 @@ class PatientDialog(QDialog):
         self.input_img_desc.setPlaceholderText("Breve descripción de esta imagen...")
         self.input_img_desc.textChanged.connect(self._on_desc_changed)
         desc_img_layout.addWidget(self.input_img_desc)
-        img_layout.addLayout(desc_img_layout)
+        right_panel.addLayout(desc_img_layout)
+
+        img_content.addLayout(right_panel, 3)
+        img_layout.addLayout(img_content)
 
         scroll_layout.addWidget(img_group)
 
@@ -255,9 +267,13 @@ class PatientDialog(QDialog):
         for att in self.attachments:
             label = os.path.basename(att.path)
             if att.description:
-                label += f" — {att.description}"
+                label += f"\n{att.description}"
             item = QListWidgetItem(label)
-            item.setToolTip(att.path)
+            item.setToolTip(f"{att.path}\n{att.description}" if att.description else att.path)
+            pixmap = QPixmap(att.path)
+            if not pixmap.isNull():
+                item.setIcon(QIcon(pixmap.scaled(100, 80, Qt.AspectRatioMode.KeepAspectRatio,
+                                                  Qt.TransformationMode.SmoothTransformation)))
             self.image_list.addItem(item)
         self.image_list.blockSignals(False)
         if self.attachments:
@@ -294,10 +310,9 @@ class PatientDialog(QDialog):
         row = self.image_list.currentRow()
         if row >= 0 and row < len(self.attachments):
             self.attachments[row].description = text
-            # Update list item label
             label = os.path.basename(self.attachments[row].path)
             if text:
-                label += f" — {text}"
+                label += f"\n{text}"
             self.image_list.currentItem().setText(label)
 
     def _on_accept(self):
