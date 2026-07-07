@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 from PyQt6.QtWidgets import (
     QDialog, QWidget, QVBoxLayout, QHBoxLayout, QFormLayout,
     QLineEdit, QTextEdit, QPushButton, QLabel, QScrollArea,
@@ -208,9 +209,11 @@ class PatientDialog(QDialog):
         )
         if not ok or not desc.strip():
             return None
+        today = datetime.now().strftime("%d/%m/%Y")
+        default_date = existing.date if existing else today
         date, ok = QInputDialog.getText(
             self, "Fecha", "Fecha (DD/MM/AAAA):",
-            text=existing.date if existing else ""
+            text=default_date
         )
         if not ok:
             return None
@@ -218,7 +221,7 @@ class PatientDialog(QDialog):
             id=existing.id if existing else None,
             patient_id=existing.patient_id if existing else (self.patient_id or 0),
             description=desc.strip(),
-            date=date.strip(),
+            date=date.strip() or today,
         )
 
     def _refresh_diag_table(self):
