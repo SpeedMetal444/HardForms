@@ -9,6 +9,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QPixmap, QIcon
+from ui.widgets import DateMaskEdit
 from models.patient import Patient, ImageAttachment
 from models.diagnosis import Diagnosis
 from database.db import (
@@ -56,8 +57,7 @@ class PatientDialog(QDialog):
         self.input_dni.setPlaceholderText("DNI")
         form.addRow("DNI:", self.input_dni)
 
-        self.input_birth_date = QLineEdit()
-        self.input_birth_date.setPlaceholderText("DD/MM/AAAA")
+        self.input_birth_date = DateMaskEdit()
         form.addRow("Fecha de nacimiento:", self.input_birth_date)
 
         self.input_phone = QLineEdit()

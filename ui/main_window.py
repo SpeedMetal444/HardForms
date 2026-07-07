@@ -4,7 +4,7 @@ from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QPushButton, QLineEdit, QTableWidget, QTableWidgetItem,
     QHeaderView, QMessageBox, QFileDialog, QLabel, QToolBar,
-    QStatusBar, QAbstractItemView
+    QStatusBar, QAbstractItemView, QProgressDialog
 )
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QAction, QIcon, QPixmap
@@ -12,6 +12,7 @@ from database.db import get_all_patients, search_patients, delete_patient, get_p
 from ui.patient_dialog import PatientDialog
 from reports.pdf_generator import generate_patient_report
 from config.institution import INSTITUTION
+from importer import run_import
 
 
 class MainWindow(QMainWindow):
@@ -39,6 +40,12 @@ class MainWindow(QMainWindow):
         btn_delete = QAction("Eliminar", self)
         btn_delete.triggered.connect(self._on_delete_patient)
         toolbar.addAction(btn_delete)
+
+        toolbar.addSeparator()
+
+        btn_import = QAction("Importar desde Access", self)
+        btn_import.triggered.connect(self._on_import)
+        toolbar.addAction(btn_import)
 
         toolbar.addSeparator()
 
@@ -132,6 +139,48 @@ class MainWindow(QMainWindow):
         if reply == QMessageBox.StandardButton.Yes:
             delete_patient(patient_id)
             self._load_patients(self.search_input.text().strip())
+
+    def _on_import(self):
+        reply = QMessageBox.question(
+            self, "Importar desde Access",
+            "¿Importar pacientes desde BaseInformes.mdb?\n"
+            "Los datos actuales se reemplazarán.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+
+        progress = QProgressDialog("Iniciando importación...", None, 0, 0, self)
+        progress.setWindowTitle("Importando")
+        progress.setCancelButton(None)
+        progress.setMinimumDuration(0)
+        progress.show()
+
+        def _progress(msg):
+            progress.setLabelText(msg)
+            from PyQt6.QtWidgets import QApplication
+            QApplication.processEvents()
+
+        try:
+            n_est, n_eco = run_import(progress=_progress)
+            progress.close()
+            QMessageBox.information(
+                self, "Importación completada",
+                f"Se importaron:\n"
+                f"  - {n_est} pacientes de Estudios\n"
+                f"  - {n_eco} pacientes de Ecografías\n"
+                f"Total: {n_est + n_eco} pacientes."
+            )
+            self._load_patients(self.search_input.text().strip())
+        except FileNotFoundError as e:
+            progress.close()
+            QMessageBox.critical(self, "Error", str(e))
+        except Exception as e:
+            progress.close()
+            QMessageBox.critical(
+                self, "Error de importación",
+                f"Ocurrió un error durante la importación:\n{e}"
+            )
 
     def _on_generate_pdf(self):
         patient_id = self._get_selected_patient_id()
