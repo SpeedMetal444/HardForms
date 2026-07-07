@@ -73,11 +73,15 @@ def bulk_insert(conn, patients_with_diagnoses):
     for p, diagnoses in patients_with_diagnoses:
         cur.execute("""
             INSERT INTO patients (first_name, last_name, dni, birth_date, phone, email,
-                                  address, medical_record_number, description, attachments,
+                                  address, medical_record_number,
+                                  insurance, insurance_number,
+                                  description, attachments,
                                   created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (p.first_name, p.last_name, p.dni, p.birth_date, p.phone, p.email,
-              p.address, p.medical_record_number, p.description, "", now, now))
+              p.address, p.medical_record_number,
+              p.insurance, p.insurance_number,
+              p.description, "", now, now))
         pid = cur.lastrowid
         for d in diagnoses:
             d.patient_id = pid
@@ -114,8 +118,10 @@ def import_estudios(csv_path, conn, progress=None):
             p = Patient(
                 first_name=first_name,
                 last_name=last_name or paciente[:50],
-                dni=(row.get("AfiliadoNro") or "").strip(),
+                dni="",
                 birth_date=birth_date,
+                insurance=(row.get("Cobertura") or "").strip(),
+                insurance_number=(row.get("AfiliadoNro") or "").strip(),
                 description=description,
             )
 
@@ -168,8 +174,10 @@ def import_ecografias(csv_path, conn, progress=None):
             p = Patient(
                 first_name=first_name,
                 last_name=last_name or paciente[:50],
-                dni=(row.get("AfiliadoNro") or "").strip(),
+                dni="",
                 birth_date=birth_date,
+                insurance=(row.get("Cobertura") or "").strip(),
+                insurance_number=(row.get("AfiliadoNro") or "").strip(),
                 description=description,
             )
 

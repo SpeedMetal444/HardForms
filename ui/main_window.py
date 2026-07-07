@@ -69,9 +69,9 @@ class MainWindow(QMainWindow):
 
         # Patient table
         self.table = QTableWidget()
-        self.table.setColumnCount(7)
+        self.table.setColumnCount(8)
         self.table.setHorizontalHeaderLabels([
-            "ID", "Apellido", "Nombre", "DNI", "Teléfono", "Nro. Historia", "Fecha Estudio"
+            "ID", "Apellido", "Nombre", "DNI", "Nro. Historia", "Afiliado", "Afiliado Nº", "Fecha Estudio"
         ])
         self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
@@ -101,11 +101,10 @@ class MainWindow(QMainWindow):
             self.table.setItem(i, 1, QTableWidgetItem(p.last_name))
             self.table.setItem(i, 2, QTableWidgetItem(p.first_name))
             self.table.setItem(i, 3, QTableWidgetItem(p.dni))
-            self.table.setItem(i, 4, QTableWidgetItem(p.phone))
-            self.table.setItem(i, 5, QTableWidgetItem(p.medical_record_number))
-            item = QTableWidgetItem(p.last_study_date)
-            item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            self.table.setItem(i, 6, item)
+            self.table.setItem(i, 4, QTableWidgetItem(p.medical_record_number))
+            self.table.setItem(i, 5, QTableWidgetItem(p.insurance))
+            self.table.setItem(i, 6, QTableWidgetItem(p.insurance_number))
+            self.table.setItem(i, 7, DateItem(p.last_study_date))
 
         self.table.resizeColumnsToContents()
         self.table.setSortingEnabled(True)

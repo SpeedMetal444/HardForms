@@ -58,6 +58,12 @@ class PatientView(QDialog):
         self.lbl_dni = QLabel()
         info_form.addRow("DNI:", self.lbl_dni)
 
+        self.lbl_insurance = QLabel()
+        info_form.addRow("Afiliado:", self.lbl_insurance)
+
+        self.lbl_insurance_number = QLabel()
+        info_form.addRow("Afiliado Nº:", self.lbl_insurance_number)
+
         self.lbl_birth_date = QLabel()
         info_form.addRow("Fecha de nacimiento:", self.lbl_birth_date)
 
@@ -116,6 +122,8 @@ class PatientView(QDialog):
         self.lbl_name.setText(p.first_name or "-")
         self.lbl_last_name.setText(p.last_name or "-")
         self.lbl_dni.setText(p.dni or "-")
+        self.lbl_insurance.setText(p.insurance or "-")
+        self.lbl_insurance_number.setText(p.insurance_number or "-")
         self.lbl_birth_date.setText(p.birth_date or "-")
         self.lbl_phone.setText(p.phone or "-")
         self.lbl_email.setText(p.email or "-")

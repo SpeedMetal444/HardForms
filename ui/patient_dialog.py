@@ -57,6 +57,14 @@ class PatientDialog(QDialog):
         self.input_dni.setPlaceholderText("DNI")
         form.addRow("DNI:", self.input_dni)
 
+        self.input_insurance = QLineEdit()
+        self.input_insurance.setPlaceholderText("Ej: OSDE, OSPEP")
+        form.addRow("Afiliado:", self.input_insurance)
+
+        self.input_insurance_number = QLineEdit()
+        self.input_insurance_number.setPlaceholderText("Nº de afiliado")
+        form.addRow("Afiliado Nº:", self.input_insurance_number)
+
         self.input_birth_date = DateMaskEdit()
         form.addRow("Fecha de nacimiento:", self.input_birth_date)
 
@@ -180,6 +188,8 @@ class PatientDialog(QDialog):
         self.input_first_name.setText(p.first_name)
         self.input_last_name.setText(p.last_name)
         self.input_dni.setText(p.dni)
+        self.input_insurance.setText(p.insurance)
+        self.input_insurance_number.setText(p.insurance_number)
         self.input_birth_date.setText(p.birth_date)
         self.input_phone.setText(p.phone)
         self.input_email.setText(p.email)
@@ -335,6 +345,8 @@ class PatientDialog(QDialog):
             email=self.input_email.text().strip(),
             address=self.input_address.text().strip(),
             medical_record_number=self.input_mrn.text().strip(),
+            insurance=self.input_insurance.text().strip(),
+            insurance_number=self.input_insurance_number.text().strip(),
             description=self.input_description.toPlainText().strip(),
             attachments=self.attachments,
         )

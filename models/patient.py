@@ -19,6 +19,8 @@ class Patient:
     email: str = ""
     address: str = ""
     medical_record_number: str = ""
+    insurance: str = ""
+    insurance_number: str = ""
     description: str = ""
     attachments: List[ImageAttachment] = field(default_factory=list)
     created_at: str = ""

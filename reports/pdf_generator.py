@@ -131,6 +131,8 @@ def generate_patient_report(patient_id: int, output_path: str):
     data = [
         ["Apellido y Nombre", patient.full_name],
         ["DNI", patient.dni or "—"],
+        ["Afiliado", patient.insurance or "—"],
+        ["Afiliado Nº", patient.insurance_number or "—"],
         ["Fecha de nacimiento", patient.birth_date or "—"],
         ["Edad", _calcular_edad(patient.birth_date) if patient.birth_date else "—"],
         ["Teléfono", patient.phone or "—"],

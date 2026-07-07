@@ -55,6 +55,14 @@ def init_db():
         conn.execute("ALTER TABLE diagnoses DROP COLUMN icd10_code")
     except Exception:
         pass
+    try:
+        conn.execute("ALTER TABLE patients ADD COLUMN insurance TEXT")
+    except Exception:
+        pass
+    try:
+        conn.execute("ALTER TABLE patients ADD COLUMN insurance_number TEXT")
+    except Exception:
+        pass
     conn.commit()
     conn.close()
 
@@ -71,11 +79,12 @@ def insert_patient(p: Patient) -> int:
     conn = get_connection()
     cur = conn.execute("""
         INSERT INTO patients (first_name, last_name, dni, birth_date, phone, email,
-                              address, medical_record_number, description, attachments)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                              address, medical_record_number, insurance, insurance_number,
+                              description, attachments)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (p.first_name, p.last_name, p.dni, p.birth_date, p.phone, p.email,
-          p.address, p.medical_record_number, p.description,
-          _attachments_to_str(p.attachments)))
+          p.address, p.medical_record_number, p.insurance, p.insurance_number,
+          p.description, _attachments_to_str(p.attachments)))
     conn.commit()
     conn.close()
     return cur.lastrowid
@@ -85,12 +94,14 @@ def update_patient(p: Patient):
     conn = get_connection()
     conn.execute("""
         UPDATE patients SET first_name=?, last_name=?, dni=?, birth_date=?, phone=?,
-                            email=?, address=?, medical_record_number=?, description=?,
-                            attachments=?, updated_at=datetime('now','localtime')
+                            email=?, address=?, medical_record_number=?,
+                            insurance=?, insurance_number=?,
+                            description=?, attachments=?,
+                            updated_at=datetime('now','localtime')
         WHERE id=?
     """, (p.first_name, p.last_name, p.dni, p.birth_date, p.phone, p.email,
-          p.address, p.medical_record_number, p.description,
-          _attachments_to_str(p.attachments), p.id))
+          p.address, p.medical_record_number, p.insurance, p.insurance_number,
+          p.description, _attachments_to_str(p.attachments), p.id))
     conn.commit()
     conn.close()
 
@@ -111,6 +122,11 @@ def get_patient(patient_id: int) -> Patient | None:
     return _row_to_patient(row)
 
 
+def _date_sort(col):
+    """Convierte columna DD/MM/AAAA a texto ordenable AAAA/MM/DD."""
+    return f"SUBSTR({col}, 7, 4) || SUBSTR({col}, 4, 2) || SUBSTR({col}, 1, 2)"
+
+
 PATIENTS_SQL = """
     SELECT p.*, (
         SELECT d.date FROM diagnoses d
@@ -120,10 +136,12 @@ PATIENTS_SQL = """
     FROM patients p
 """
 
+SORT_EXPR = f"COALESCE({_date_sort('last_study_date')}, '')"
+
 
 def get_all_patients() -> List[Patient]:
     conn = get_connection()
-    rows = conn.execute(PATIENTS_SQL + " ORDER BY last_study_date DESC, p.updated_at DESC").fetchall()
+    rows = conn.execute(PATIENTS_SQL + f" ORDER BY {SORT_EXPR} DESC, p.updated_at DESC").fetchall()
     conn.close()
     return [_row_to_patient(r) for r in rows]
 
@@ -131,10 +149,11 @@ def get_all_patients() -> List[Patient]:
 def search_patients(query: str) -> List[Patient]:
     conn = get_connection()
     like = f"%{query}%"
-    rows = conn.execute(PATIENTS_SQL + """
+    rows = conn.execute(PATIENTS_SQL + f"""
         WHERE p.first_name LIKE ? OR p.last_name LIKE ? OR p.dni LIKE ?
-        ORDER BY last_study_date DESC, p.updated_at DESC
-    """, (like, like, like)).fetchall()
+           OR p.insurance LIKE ? OR p.insurance_number LIKE ?
+        ORDER BY {SORT_EXPR} DESC, p.updated_at DESC
+    """, (like, like, like, like, like)).fetchall()
     conn.close()
     return [_row_to_patient(r) for r in rows]
 
@@ -170,6 +189,8 @@ def _row_to_patient(row: sqlite3.Row) -> Patient:
         email=row["email"],
         address=row["address"],
         medical_record_number=row["medical_record_number"],
+        insurance=row["insurance"] or "",
+        insurance_number=row["insurance_number"] or "",
         description=row["description"],
         attachments=_str_to_attachments(row["attachments"]),
         created_at=row["created_at"],
