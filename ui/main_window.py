@@ -42,17 +42,22 @@ class MainWindow(QMainWindow):
         act_delete.triggered.connect(self._on_delete_patient)
         menu_archivo.addAction(act_delete)
         menu_archivo.addSeparator()
-        act_import = QAction("Importar", self)
-        act_import.triggered.connect(self._on_import)
-        menu_archivo.addAction(act_import)
+
+        menu_import = menu_archivo.addMenu("Importar")
+        act_import_mdb_csv = QAction("CSV / MDB...", self)
+        act_import_mdb_csv.triggered.connect(self._on_import)
+        menu_import.addAction(act_import_mdb_csv)
         act_import_zip = QAction("Restaurar desde ZIP...", self)
         act_import_zip.triggered.connect(self._on_import_zip)
-        menu_archivo.addAction(act_import_zip)
-        menu_archivo.addSeparator()
+        menu_import.addAction(act_import_zip)
+
         menu_export = menu_archivo.addMenu("Exportar")
         act_export_csv = QAction("CSV...", self)
         act_export_csv.triggered.connect(self._on_export_csv)
         menu_export.addAction(act_export_csv)
+        act_export_db = QAction("DB...", self)
+        act_export_db.triggered.connect(self._on_export_db)
+        menu_export.addAction(act_export_db)
         act_export_zip = QAction("Backup completo (.zip)...", self)
         act_export_zip.triggered.connect(self._on_export_zip)
         menu_export.addAction(act_export_zip)
@@ -254,6 +259,21 @@ class MainWindow(QMainWindow):
                                     f"{len(patients)} pacientes exportados a:\n{file_path}")
         except Exception as e:
             QMessageBox.critical(self, "Error", f"No se pudo exportar:\n{e}")
+
+    def _on_export_db(self):
+        import shutil
+        from database.db import DB_PATH
+        file_path, _ = QFileDialog.getSaveFileName(
+            self, "Exportar DB", "patients.db", "DB (*.db)"
+        )
+        if not file_path:
+            return
+        try:
+            shutil.copy2(DB_PATH, file_path)
+            QMessageBox.information(self, "Exportado",
+                                    f"Base de datos copiada a:\n{file_path}")
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"No se pudo exportar la DB:\n{e}")
 
     def _on_export_zip(self):
         import zipfile
