@@ -42,12 +42,9 @@ class MainWindow(QMainWindow):
         act_delete.triggered.connect(self._on_delete_patient)
         menu_archivo.addAction(act_delete)
         menu_archivo.addSeparator()
-        act_import_mdb = QAction("Importar desde Access (.mdb)", self)
-        act_import_mdb.triggered.connect(self._on_import)
-        menu_archivo.addAction(act_import_mdb)
-        act_import_csv = QAction("Importar CSV", self)
-        act_import_csv.triggered.connect(self._on_import_csv)
-        menu_archivo.addAction(act_import_csv)
+        act_import = QAction("Importar", self)
+        act_import.triggered.connect(self._on_import)
+        menu_archivo.addAction(act_import)
         act_export = QAction("Exportar CSV", self)
         act_export.triggered.connect(self._on_export)
         menu_archivo.addAction(act_export)
@@ -177,45 +174,6 @@ class MainWindow(QMainWindow):
             delete_patient(patient_id)
             self._load_patients(self.search_input.text().strip())
 
-    def _on_import_csv(self):
-        file_path, _ = QFileDialog.getOpenFileName(
-            self, "Importar CSV", "", "CSV (*.csv)"
-        )
-        if not file_path:
-            return
-        try:
-            import csv
-            from models.patient import Patient
-            from database.db import get_next_medical_record_number
-
-            count = 0
-            with open(file_path, encoding="utf-8-sig") as f:
-                reader = csv.DictReader(f)
-                for row in reader:
-                    first = (row.get("Nombre") or "").strip()
-                    last = (row.get("Apellido") or "").strip()
-                    if not first or not last:
-                        continue
-                    p = Patient(
-                        first_name=first, last_name=last,
-                        dni=(row.get("DNI") or "").strip(),
-                        birth_date=(row.get("FechaNacimiento") or "").strip(),
-                        phone=(row.get("Telefono") or "").strip(),
-                        email=(row.get("Email") or "").strip(),
-                        address=(row.get("Domicilio") or "").strip(),
-                        medical_record_number=get_next_medical_record_number(),
-                        insurance=(row.get("Afiliado") or "").strip(),
-                        insurance_number=(row.get("AfiliadoNro") or "").strip(),
-                        doctor=(row.get("Medico") or "").strip(),
-                        description=(row.get("Informe") or "").strip(),
-                    )
-                    insert_patient(p)
-                    count += 1
-            QMessageBox.information(self, "Importado", f"{count} pacientes importados.")
-            self._load_patients(self.search_input.text().strip())
-        except Exception as e:
-            QMessageBox.critical(self, "Error", f"No se pudo importar CSV:\n{e}")
-
     def _on_duplicate_patient(self):
         patient_id = self._get_selected_patient_id()
         if patient_id is None:
@@ -291,52 +249,67 @@ class MainWindow(QMainWindow):
 
     def _on_import(self):
         file_path, _ = QFileDialog.getOpenFileName(
-            self, "Seleccionar base de datos .mdb", "",
-            "Access Database (*.mdb);;Todos (*.*)"
+            self, "Seleccionar archivo a importar", "",
+            "Archivos compatibles (*.mdb *.csv);;Access Database (*.mdb);;CSV (*.csv)"
         )
         if not file_path:
             return
 
-        reply = QMessageBox.question(
-            self, "Importar",
-            "¿Importar pacientes desde archivo de base de datos .mdb?\n"
-            "Los datos actuales se reemplazarán.",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-        )
-        if reply != QMessageBox.StandardButton.Yes:
-            return
-
-        progress = QProgressDialog("Iniciando importación...", None, 0, 0, self)
-        progress.setWindowTitle("Importando")
-        progress.setCancelButton(None)
-        progress.setMinimumDuration(0)
-        progress.show()
-
-        def _progress(msg):
-            progress.setLabelText(msg)
-            from PyQt6.QtWidgets import QApplication
-            QApplication.processEvents()
-
-        try:
-            n_est, n_eco = run_import(mdb_path=file_path, progress=_progress)
-            progress.close()
-            QMessageBox.information(
-                self, "Importación completada",
-                f"Se importaron:\n"
-                f"  - {n_est} pacientes de Estudios\n"
-                f"  - {n_eco} pacientes de Ecografías\n"
-                f"Total: {n_est + n_eco} pacientes."
+        ext = os.path.splitext(file_path)[1].lower()
+        if ext == ".mdb":
+            reply = QMessageBox.question(
+                self, "Importar",
+                "¿Importar pacientes desde archivo .mdb?\n"
+                "Los datos actuales se reemplazarán.",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             )
-            self._load_patients(self.search_input.text().strip())
-        except FileNotFoundError as e:
-            progress.close()
-            QMessageBox.critical(self, "Error", str(e))
-        except Exception as e:
-            progress.close()
-            QMessageBox.critical(
-                self, "Error de importación",
-                f"Ocurrió un error durante la importación:\n{e}"
+            if reply != QMessageBox.StandardButton.Yes:
+                return
+
+            progress = QProgressDialog("Iniciando importación...", None, 0, 0, self)
+            progress.setWindowTitle("Importando")
+            progress.setCancelButton(None)
+            progress.setMinimumDuration(0)
+            progress.show()
+
+            def _progress(msg):
+                progress.setLabelText(msg)
+                from PyQt6.QtWidgets import QApplication
+                QApplication.processEvents()
+
+            try:
+                n_est, n_eco = run_import(mdb_path=file_path, progress=_progress)
+                progress.close()
+                QMessageBox.information(
+                    self, "Importación completada",
+                    f"Se importaron:\n"
+                    f"  - {n_est} pacientes de Estudios\n"
+                    f"  - {n_eco} pacientes de Ecografías\n"
+                    f"Total: {n_est + n_eco} pacientes."
+                )
+                self._load_patients(self.search_input.text().strip())
+            except FileNotFoundError as e:
+                progress.close()
+                QMessageBox.critical(self, "Error", str(e))
+            except Exception as e:
+                progress.close()
+                QMessageBox.critical(
+                    self, "Error de importación",
+                    f"Ocurrió un error durante la importación:\n{e}"
+                )
+        elif ext == ".csv":
+            self._on_import_csv(file_path)
+        else:
+            QMessageBox.warning(self, "Formato no soportado",
+                                "Seleccioná un archivo .mdb o .csv.")
+
+    def _on_import_csv(self, file_path: str | None = None):
+        if file_path is None:
+            file_path, _ = QFileDialog.getOpenFileName(
+                self, "Importar CSV", "", "CSV (*.csv)"
             )
+            if not file_path:
+                return
 
     def _on_generate_pdf(self):
         patient_id = self._get_selected_patient_id()
