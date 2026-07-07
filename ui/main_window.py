@@ -223,13 +223,20 @@ class MainWindow(QMainWindow):
             with open(file_path, "w", newline="", encoding="utf-8-sig") as f:
                 writer = csv.writer(f)
                 writer.writerow(["Apellido", "Nombre", "DNI", "Afiliado", "Afiliado Nº",
-                                 "Nro. Historia", "Médico", "Anestesia", "Droga",
-                                 "Anestesiólogo", "Boston", "Fecha Estudio"])
+                                 "Nro. Historia", "FechaNacimiento", "Teléfono", "Email",
+                                 "Domicilio", "Médico", "Anestesia", "Droga",
+                                 "Postoperatorio", "Anestesiólogo", "Boston",
+                                 "Informe", "Imágenes"])
                 for p in patients:
+                    imgs = ";".join(
+                        f"{a.path}|{a.description}" for a in p.attachments
+                    )
                     writer.writerow([
                         p.last_name, p.first_name, p.dni, p.insurance, p.insurance_number,
-                        p.medical_record_number, p.doctor, p.anesthesia_type, p.drug,
-                        p.anesthesiologist, p.boston_scale, p.last_study_date,
+                        p.medical_record_number, p.birth_date, p.phone, p.email,
+                        p.address, p.doctor, p.anesthesia_type, p.drug,
+                        p.postop, p.anesthesiologist, p.boston_scale,
+                        p.description, imgs,
                     ])
             QMessageBox.information(self, "Exportado",
                                     f"{len(patients)} pacientes exportados a:\n{file_path}")
@@ -310,6 +317,57 @@ class MainWindow(QMainWindow):
             )
             if not file_path:
                 return
+        import csv
+        from models.patient import ImageAttachment
+        from database.db import get_next_medical_record_number
+
+        count = 0
+        try:
+            with open(file_path, encoding="utf-8-sig") as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    first = (row.get("Nombre") or "").strip()
+                    last = (row.get("Apellido") or "").strip()
+                    if not first or not last:
+                        continue
+
+                    # Parse imágenes
+                    attachments = []
+                    imgs_raw = (row.get("Imágenes") or "").strip()
+                    if imgs_raw:
+                        for part in imgs_raw.split(";"):
+                            part = part.strip()
+                            if "|" in part:
+                                path, desc = part.split("|", 1)
+                                attachments.append(ImageAttachment(path=path.strip(), description=desc.strip()))
+                            elif part:
+                                attachments.append(ImageAttachment(path=part))
+
+                    p = Patient(
+                        first_name=first, last_name=last,
+                        dni=(row.get("DNI") or "").strip(),
+                        birth_date=(row.get("FechaNacimiento") or "").strip(),
+                        phone=(row.get("Teléfono") or "").strip(),
+                        email=(row.get("Email") or "").strip(),
+                        address=(row.get("Domicilio") or "").strip(),
+                        medical_record_number=get_next_medical_record_number(),
+                        insurance=(row.get("Afiliado") or "").strip(),
+                        insurance_number=(row.get("Afiliado Nº") or "").strip(),
+                        doctor=(row.get("Médico") or "").strip(),
+                        anesthesia_type=(row.get("Anestesia") or "").strip(),
+                        drug=(row.get("Droga") or "").strip(),
+                        postop=(row.get("Postoperatorio") or "").strip(),
+                        anesthesiologist=(row.get("Anestesiólogo") or "").strip(),
+                        boston_scale=(row.get("Boston") or "").strip(),
+                        description=(row.get("Informe") or "").strip(),
+                        attachments=attachments,
+                    )
+                    insert_patient(p)
+                    count += 1
+            QMessageBox.information(self, "Importado", f"{count} pacientes importados.")
+            self._load_patients(self.search_input.text().strip())
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"No se pudo importar CSV:\n{e}")
 
     def _on_generate_pdf(self):
         patient_id = self._get_selected_patient_id()
