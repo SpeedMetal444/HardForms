@@ -45,9 +45,13 @@ class MainWindow(QMainWindow):
         act_import = QAction("Importar", self)
         act_import.triggered.connect(self._on_import)
         menu_archivo.addAction(act_import)
-        act_export = QAction("Exportar CSV", self)
-        act_export.triggered.connect(self._on_export)
-        menu_archivo.addAction(act_export)
+        menu_export = menu_archivo.addMenu("Exportar")
+        act_export_csv = QAction("CSV...", self)
+        act_export_csv.triggered.connect(self._on_export_csv)
+        menu_export.addAction(act_export_csv)
+        act_export_zip = QAction("Backup completo (.zip)...", self)
+        act_export_zip.triggered.connect(self._on_export_zip)
+        menu_export.addAction(act_export_zip)
 
         menu_herramientas = menubar.addMenu("Herramientas")
         act_pdf = QAction("Abrir como PDF", self)
@@ -215,10 +219,10 @@ class MainWindow(QMainWindow):
                                 f"Paciente duplicado correctamente.\nNueva HC: {dup.medical_record_number}")
         self._load_patients(self.search_input.text().strip())
 
-    def _on_export(self):
+    def _on_export_csv(self):
         import csv
         file_path, _ = QFileDialog.getSaveFileName(
-            self, "Exportar pacientes", "pacientes.csv", "CSV (*.csv)"
+            self, "Exportar CSV", "pacientes.csv", "CSV (*.csv)"
         )
         if not file_path:
             return
@@ -246,6 +250,40 @@ class MainWindow(QMainWindow):
                                     f"{len(patients)} pacientes exportados a:\n{file_path}")
         except Exception as e:
             QMessageBox.critical(self, "Error", f"No se pudo exportar:\n{e}")
+
+    def _on_export_zip(self):
+        import zipfile, shutil
+        from database.db import get_all_patients, DB_PATH
+
+        file_path, _ = QFileDialog.getSaveFileName(
+            self, "Exportar backup", "backup_hardforms.zip", "ZIP (*.zip)"
+        )
+        if not file_path:
+            return
+        try:
+            with zipfile.ZipFile(file_path, "w", zipfile.ZIP_DEFLATED) as zf:
+                zf.write(DB_PATH, "patients.db")
+
+                seen = set()
+                for p in get_all_patients():
+                    for a in p.attachments:
+                        img_path = a.path
+                        if not img_path or img_path in seen:
+                            continue
+                        if os.path.isfile(img_path):
+                            seen.add(img_path)
+                            arcname = f"images/{os.path.basename(img_path)}"
+                            # evitar colisiones
+                            if any(x == arcname for x in zf.namelist()):
+                                arcname = f"images/{os.path.basename(os.path.dirname(img_path))}_{os.path.basename(img_path)}"
+                            zf.write(img_path, arcname)
+            QMessageBox.information(
+                self, "Backup creado",
+                f"Backup exportado a:\n{file_path}\n\n"
+                f"Incluye: patients.db + {len(seen)} imagen(es)."
+            )
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"No se pudo crear el backup:\n{e}")
 
     def _on_about(self):
         from config.institution import INSTITUTION

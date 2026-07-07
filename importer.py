@@ -70,7 +70,10 @@ def export_mdb_to_csv(table_name, csv_path, mdb_path):
 def bulk_insert(conn, patients_with_diagnoses):
     now = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
     cur = conn.cursor()
-    for p, diagnoses in patients_with_diagnoses:
+    for p, attachments, diagnoses in patients_with_diagnoses:
+        attrs = "\n".join(
+            f"{a.path}|||{a.description}" for a in attachments
+        )
         cur.execute("""
             INSERT INTO patients (first_name, last_name, dni, birth_date, phone, email,
                                   address, medical_record_number,
@@ -81,7 +84,7 @@ def bulk_insert(conn, patients_with_diagnoses):
         """, (p.first_name, p.last_name, p.dni, p.birth_date, p.phone, p.email,
               p.address, p.medical_record_number,
               p.insurance, p.insurance_number,
-              p.description, "", now, now))
+              p.description, attrs, now, now))
         pid = cur.lastrowid
         for d in diagnoses:
             d.patient_id = pid
@@ -142,7 +145,18 @@ def import_estudios(csv_path, conn, progress=None):
             if indicacion and indicacion not in seen:
                 diagnoses.append(Diagnosis(description=indicacion, date=fecha))
 
-            batch.append((p, diagnoses))
+            # Imágenes
+            from models.patient import ImageAttachment
+            attachments = []
+            for foto_col, coment_col in [("ArcFoto1", "ComentarioFoto0"),
+                                          ("ArcFoto2", "ComentarioFoto1"),
+                                          ("ArcFoto3", "ComentarioFoto2")]:
+                path = (row.get(foto_col) or "").strip()
+                if path:
+                    desc = (row.get(coment_col) or "").strip()
+                    attachments.append(ImageAttachment(path=path, description=desc))
+
+            batch.append((p, attachments, diagnoses))
             count += 1
             if len(batch) >= 500:
                 bulk_insert(conn, batch)
@@ -191,7 +205,15 @@ def import_ecografias(csv_path, conn, progress=None):
             if indicacion:
                 diagnoses.append(Diagnosis(description=indicacion, date=fecha))
 
-            batch.append((p, diagnoses))
+            # Imágenes
+            from models.patient import ImageAttachment
+            attachments = []
+            for foto_col in ["ArcFoto1", "ArcFoto2", "ArcFoto3", "ArcFoto4"]:
+                path = (row.get(foto_col) or "").strip()
+                if path:
+                    attachments.append(ImageAttachment(path=path))
+
+            batch.append((p, attachments, diagnoses))
             count += 1
             if len(batch) >= 500:
                 bulk_insert(conn, batch)
@@ -246,7 +268,10 @@ def run_import(mdb_path=None, progress=None):
 
         if progress:
             progress("Importando Estudios...")
-        n_est = import_estudios(csv_est, conn, progress=lambda c: progress(f"Importando Estudios... {c} pacientes"))
+        _prog = progress
+        n_est = import_estudios(csv_est, conn, progress=(
+            (lambda c: _prog(f"Importando Estudios... {c} pacientes"))
+        )) if progress else import_estudios(csv_est, conn)
 
         # Exportar Ecografias
         csv_eco = os.path.join(tmp, "Ecografias.csv")
@@ -256,7 +281,10 @@ def run_import(mdb_path=None, progress=None):
 
         if progress:
             progress("Importando Ecografias...")
-        n_eco = import_ecografias(csv_eco, conn, progress=lambda c: progress(f"Importando Ecografias... {c} pacientes"))
+        _prog = progress
+        n_eco = import_ecografias(csv_eco, conn, progress=(
+            (lambda c: _prog(f"Importando Ecografias... {c} pacientes"))
+        )) if progress else import_ecografias(csv_eco, conn)
 
         return n_est, n_eco
 
