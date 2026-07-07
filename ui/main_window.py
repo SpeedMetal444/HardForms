@@ -45,13 +45,13 @@ class MainWindow(QMainWindow):
 
         toolbar.addSeparator()
 
-        btn_import = QAction("Importar desde Access", self)
+        btn_import = QAction("Importar", self)
         btn_import.triggered.connect(self._on_import)
         toolbar.addAction(btn_import)
 
         toolbar.addSeparator()
 
-        btn_report = QAction("Imprimir", self)
+        btn_report = QAction("Abrir como PDF", self)
         btn_report.triggered.connect(self._on_generate_pdf)
         toolbar.addAction(btn_report)
 
@@ -162,7 +162,7 @@ class MainWindow(QMainWindow):
             return
 
         reply = QMessageBox.question(
-            self, "Importar desde Access",
+            self, "Importar",
             "¿Importar pacientes desde archivo de base de datos .mdb?\n"
             "Los datos actuales se reemplazarán.",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,

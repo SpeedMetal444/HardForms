@@ -31,7 +31,7 @@ class PatientView(QDialog):
         self.btn_edit = QPushButton("Editar")
         self.btn_edit.clicked.connect(self._on_edit)
         btn_layout.addWidget(self.btn_edit)
-        self.btn_print = QPushButton("Imprimir")
+        self.btn_print = QPushButton("Abrir como PDF")
         self.btn_print.clicked.connect(self._on_print)
         btn_layout.addWidget(self.btn_print)
         btn_layout.addStretch()
