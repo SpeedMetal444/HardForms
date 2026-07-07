@@ -14,6 +14,7 @@ from ui.patient_view import PatientView
 from reports.pdf_generator import generate_patient_report
 from config.institution import INSTITUTION
 from importer import run_import
+from ui.widgets import DateItem
 
 
 class MainWindow(QMainWindow):
