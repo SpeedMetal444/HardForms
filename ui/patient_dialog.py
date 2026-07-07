@@ -101,21 +101,21 @@ class PatientDialog(QDialog):
         anes_group = QGroupBox("Anestesia / Preparación")
         anes_layout = QFormLayout(anes_group)
 
-        self.input_anesthesia_type = QComboBox()
-        self.input_anesthesia_type.setEditable(True)
-        self.input_anesthesia_type.addItems(["", "Local", "General"])
-        anes_layout.addRow("Tipo:", self.input_anesthesia_type)
+        self.tipo_group = QButtonGroup(self)
+        tipo_layout = QHBoxLayout()
+        self.rb_tipo_local = QRadioButton("Local")
+        self.rb_tipo_general = QRadioButton("General")
+        self.tipo_group.addButton(self.rb_tipo_local)
+        self.tipo_group.addButton(self.rb_tipo_general)
+        tipo_layout.addWidget(self.rb_tipo_local)
+        tipo_layout.addWidget(self.rb_tipo_general)
+        tipo_layout.addStretch()
+        anes_layout.addRow("Tipo:", tipo_layout)
 
-        self.drug_group = QButtonGroup(self)
-        drug_layout = QHBoxLayout()
-        self.rb_drug_local = QRadioButton("Local")
-        self.rb_drug_general = QRadioButton("General")
-        self.drug_group.addButton(self.rb_drug_local)
-        self.drug_group.addButton(self.rb_drug_general)
-        drug_layout.addWidget(self.rb_drug_local)
-        drug_layout.addWidget(self.rb_drug_general)
-        drug_layout.addStretch()
-        anes_layout.addRow("Droga:", drug_layout)
+        self.input_drug = QLineEdit()
+        self.input_drug.setPlaceholderText("Droga utilizada")
+        self.input_drug.textChanged.connect(self._on_drug_changed)
+        anes_layout.addRow("Droga:", self.input_drug)
 
         self.input_postop = QLineEdit()
         self.input_postop.setPlaceholderText("Postoperatorio")
@@ -250,11 +250,12 @@ class PatientDialog(QDialog):
         self.input_address.setText(p.address)
         self.input_mrn.setText(p.medical_record_number)
         self.input_doctor.setCurrentText(p.doctor)
-        self.input_anesthesia_type.setCurrentText(p.anesthesia_type)
-        if p.drug == "General":
-            self.rb_drug_general.setChecked(True)
-        else:
-            self.rb_drug_local.setChecked(True)
+        if p.anesthesia_type == "General":
+            self.rb_tipo_general.setChecked(True)
+        elif p.anesthesia_type == "Local":
+            self.rb_tipo_local.setChecked(True)
+        self.input_drug.setText(p.drug)
+        self._on_drug_changed(p.drug)
         self.input_postop.setText(p.postop)
         self.input_anesthesiologist.setCurrentText(p.anesthesiologist)
         self.input_boston.setCurrentText(p.boston_scale)
@@ -391,6 +392,11 @@ class PatientDialog(QDialog):
                 label += f"\n{text}"
             self.image_list.currentItem().setText(label)
 
+    def _on_drug_changed(self, text: str):
+        enabled = bool(text.strip())
+        self.rb_tipo_local.setEnabled(enabled)
+        self.rb_tipo_general.setEnabled(enabled)
+
     def _on_accept(self):
         first_name = self.input_first_name.text().strip()
         last_name = self.input_last_name.text().strip()
@@ -414,8 +420,8 @@ class PatientDialog(QDialog):
             insurance=self.input_insurance.text().strip(),
             insurance_number=self.input_insurance_number.text().strip(),
             doctor=self.input_doctor.currentText().strip(),
-            anesthesia_type=self.input_anesthesia_type.currentText().strip(),
-            drug="General" if self.rb_drug_general.isChecked() else "Local",
+            anesthesia_type="General" if self.rb_tipo_general.isChecked() else "Local",
+            drug=self.input_drug.text().strip(),
             postop=self.input_postop.text().strip(),
             anesthesiologist=self.input_anesthesiologist.currentText().strip(),
             boston_scale=self.input_boston.currentText().strip(),
