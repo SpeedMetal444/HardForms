@@ -47,7 +47,7 @@ def parse_name(full):
     return (parts[0].upper(), "") if parts else ("", "")
 
 
-def export_mdb_to_csv(table_name, csv_path):
+def export_mdb_to_csv(table_name, csv_path, mdb_path):
     export_vbs = os.path.join(CURRENT_DIR, "export_table.vbs")
     if not os.path.isfile(export_vbs):
         raise FileNotFoundError(f"No se encuentra {export_vbs}")
@@ -57,11 +57,14 @@ def export_mdb_to_csv(table_name, csv_path):
         cscript = "cscript.exe"
 
     result = subprocess.run(
-        [cscript, "//Nologo", export_vbs, table_name, csv_path],
-        capture_output=True, text=True,         creationflags=subprocess.CREATE_NO_WINDOW
+        [cscript, "//Nologo", export_vbs, table_name, csv_path, mdb_path],
+        capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW
     )
     if result.returncode != 0:
-        raise RuntimeError(f"Error exportando {table_name}: {result.stderr}")
+        stderr = (result.stderr or "").strip()
+        stdout = (result.stdout or "").strip()
+        detail = stderr or stdout or "Error desconocido"
+        raise RuntimeError(f"Error exportando {table_name}: {detail}")
 
 
 def bulk_insert(conn, patients_with_diagnoses):
@@ -196,20 +199,19 @@ def clean_old_records(conn):
     conn.commit()
 
 
-def run_import(progress=None):
+def run_import(mdb_path=None, progress=None):
     """
     Exporta MDB a CSV via VBS y luego importa a SQLite.
+    mdb_path: ruta al archivo .mdb. Si es None, usa BaseInformes.mdb del directorio actual.
     progress: callable(msg) para reportar avance desde la UI.
     Retorna (estudios_count, ecografias_count).
     """
     from database.db import init_db
     init_db()
 
-    if not os.path.isfile(MDB_PATH):
-        raise FileNotFoundError(
-            f"No se encuentra {MDB_PATH}.\n"
-            "Colocá el archivo BaseInformes.mdb en la misma carpeta que la aplicación."
-        )
+    path = mdb_path or MDB_PATH
+    if not os.path.isfile(path):
+        raise FileNotFoundError(f"No se encuentra el archivo: {path}")
 
     conn = get_connection()
     tmp = os.environ["TEMP"]
@@ -226,7 +228,7 @@ def run_import(progress=None):
         csv_est = os.path.join(tmp, "Estudios.csv")
         if progress:
             progress("Exportando tabla Estudios...")
-        export_mdb_to_csv("Estudios", csv_est)
+        export_mdb_to_csv("Estudios", csv_est, path)
 
         if progress:
             progress("Importando Estudios...")
@@ -236,7 +238,7 @@ def run_import(progress=None):
         csv_eco = os.path.join(tmp, "Ecografias.csv")
         if progress:
             progress("Exportando tabla Ecografias...")
-        export_mdb_to_csv("Ecografias", csv_eco)
+        export_mdb_to_csv("Ecografias", csv_eco, path)
 
         if progress:
             progress("Importando Ecografias...")

@@ -1,9 +1,10 @@
-Dim conn, rs, fso, out, i, val, table, csvPath
+Dim conn, rs, fso, out, i, val, table, csvPath, mdbPath
 table = WScript.Arguments(0)
 csvPath = WScript.Arguments(1)
+mdbPath = WScript.Arguments(2)
 
 Set conn = CreateObject("ADODB.Connection")
-conn.Open("Provider=Microsoft.Jet.OLEDB.4.0;Data Source=BaseInformes.mdb")
+conn.Open("Provider=Microsoft.Jet.OLEDB.4.0;Data Source=" & mdbPath)
 Set rs = conn.Execute("SELECT * FROM [" & table & "]")
 
 Set fso = CreateObject("Scripting.FileSystemObject")

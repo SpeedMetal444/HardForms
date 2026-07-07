@@ -141,9 +141,16 @@ class MainWindow(QMainWindow):
             self._load_patients(self.search_input.text().strip())
 
     def _on_import(self):
+        file_path, _ = QFileDialog.getOpenFileName(
+            self, "Seleccionar base de datos .mdb", "",
+            "Access Database (*.mdb);;Todos (*.*)"
+        )
+        if not file_path:
+            return
+
         reply = QMessageBox.question(
             self, "Importar desde Access",
-            "¿Importar pacientes desde BaseInformes.mdb?\n"
+            "¿Importar pacientes desde archivo de base de datos .mdb?\n"
             "Los datos actuales se reemplazarán.",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
@@ -162,7 +169,7 @@ class MainWindow(QMainWindow):
             QApplication.processEvents()
 
         try:
-            n_est, n_eco = run_import(progress=_progress)
+            n_est, n_eco = run_import(mdb_path=file_path, progress=_progress)
             progress.close()
             QMessageBox.information(
                 self, "Importación completada",
