@@ -9,7 +9,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QPixmap, QIcon
-from PyQt6.QtWidgets import QComboBox
+from PyQt6.QtWidgets import QComboBox, QButtonGroup, QRadioButton
 from ui.widgets import DateMaskEdit
 from models.patient import Patient, ImageAttachment
 from models.diagnosis import Diagnosis
@@ -106,8 +106,16 @@ class PatientDialog(QDialog):
         self.input_anesthesia_type.addItems(["", "Local", "General"])
         anes_layout.addRow("Tipo:", self.input_anesthesia_type)
 
-        self.input_drug = self._make_combo("drug", "Droga utilizada")
-        anes_layout.addRow("Droga:", self.input_drug)
+        self.drug_group = QButtonGroup(self)
+        drug_layout = QHBoxLayout()
+        self.rb_drug_local = QRadioButton("Local")
+        self.rb_drug_general = QRadioButton("General")
+        self.drug_group.addButton(self.rb_drug_local)
+        self.drug_group.addButton(self.rb_drug_general)
+        drug_layout.addWidget(self.rb_drug_local)
+        drug_layout.addWidget(self.rb_drug_general)
+        drug_layout.addStretch()
+        anes_layout.addRow("Droga:", drug_layout)
 
         self.input_postop = QLineEdit()
         self.input_postop.setPlaceholderText("Postoperatorio")
@@ -243,7 +251,10 @@ class PatientDialog(QDialog):
         self.input_mrn.setText(p.medical_record_number)
         self.input_doctor.setCurrentText(p.doctor)
         self.input_anesthesia_type.setCurrentText(p.anesthesia_type)
-        self.input_drug.setCurrentText(p.drug)
+        if p.drug == "General":
+            self.rb_drug_general.setChecked(True)
+        else:
+            self.rb_drug_local.setChecked(True)
         self.input_postop.setText(p.postop)
         self.input_anesthesiologist.setCurrentText(p.anesthesiologist)
         self.input_boston.setCurrentText(p.boston_scale)
@@ -388,7 +399,6 @@ class PatientDialog(QDialog):
             return
 
         self._save_combo_value(self.input_doctor, "doctor")
-        self._save_combo_value(self.input_drug, "drug")
         self._save_combo_value(self.input_anesthesiologist, "anesthesiologist")
 
         p = Patient(
@@ -405,7 +415,7 @@ class PatientDialog(QDialog):
             insurance_number=self.input_insurance_number.text().strip(),
             doctor=self.input_doctor.currentText().strip(),
             anesthesia_type=self.input_anesthesia_type.currentText().strip(),
-            drug=self.input_drug.currentText().strip(),
+            drug="General" if self.rb_drug_general.isChecked() else "Local",
             postop=self.input_postop.text().strip(),
             anesthesiologist=self.input_anesthesiologist.currentText().strip(),
             boston_scale=self.input_boston.currentText().strip(),
