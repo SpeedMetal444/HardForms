@@ -59,6 +59,14 @@ def init_db():
     conn.close()
 
 
+def get_next_medical_record_number() -> str:
+    conn = get_connection()
+    row = conn.execute("SELECT MAX(CAST(medical_record_number AS INTEGER)) FROM patients").fetchone()
+    conn.close()
+    last = row[0] or 0
+    return f"HC-{last + 1:05d}"
+
+
 def insert_patient(p: Patient) -> int:
     conn = get_connection()
     cur = conn.execute("""

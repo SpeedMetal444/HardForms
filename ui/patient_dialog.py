@@ -14,7 +14,7 @@ from models.diagnosis import Diagnosis
 from database.db import (
     insert_patient, update_patient, get_patient,
     get_diagnoses_for_patient, insert_diagnosis,
-    delete_diagnoses_for_patient,
+    delete_diagnoses_for_patient, get_next_medical_record_number,
 )
 
 
@@ -73,7 +73,10 @@ class PatientDialog(QDialog):
         form.addRow("Domicilio:", self.input_address)
 
         self.input_mrn = QLineEdit()
-        self.input_mrn.setPlaceholderText("Nro. Historia Clínica")
+        self.input_mrn.setReadOnly(True)
+        self.input_mrn.setStyleSheet("background-color: #f0f0f0;")
+        if not self.patient_id:
+            self.input_mrn.setText(get_next_medical_record_number())
         form.addRow("Nro. Historia:", self.input_mrn)
 
         scroll_layout.addLayout(form)
