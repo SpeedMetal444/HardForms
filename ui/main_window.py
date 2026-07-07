@@ -3,12 +3,13 @@ import tempfile
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QPushButton, QLineEdit, QTableWidget, QTableWidgetItem,
-    QHeaderView, QMessageBox, QFileDialog, QLabel, QToolBar,
+    QHeaderView, QMessageBox, QFileDialog, QLabel,
     QStatusBar, QAbstractItemView, QProgressDialog, QMenuBar,
 )
-from PyQt6.QtCore import Qt, QUrl
+from PyQt6.QtCore import Qt, QUrl, QSize
 from PyQt6.QtGui import QAction, QIcon, QPixmap, QDesktopServices
-from database.db import get_all_patients, search_patients, delete_patient, get_patient, get_diagnoses_for_patient
+from database.db import get_all_patients, search_patients, delete_patient, get_patient, get_diagnoses_for_patient, insert_patient, insert_diagnosis
+from models.diagnosis import Diagnosis
 from ui.patient_dialog import PatientDialog
 from ui.patient_view import PatientView
 from reports.pdf_generator import generate_patient_report
@@ -41,10 +42,13 @@ class MainWindow(QMainWindow):
         act_delete.triggered.connect(self._on_delete_patient)
         menu_archivo.addAction(act_delete)
         menu_archivo.addSeparator()
-        act_import = QAction("Importar", self)
-        act_import.triggered.connect(self._on_import)
-        menu_archivo.addAction(act_import)
-        act_export = QAction("Exportar", self)
+        act_import_mdb = QAction("Importar desde Access (.mdb)", self)
+        act_import_mdb.triggered.connect(self._on_import)
+        menu_archivo.addAction(act_import_mdb)
+        act_import_csv = QAction("Importar CSV", self)
+        act_import_csv.triggered.connect(self._on_import_csv)
+        menu_archivo.addAction(act_import_csv)
+        act_export = QAction("Exportar CSV", self)
         act_export.triggered.connect(self._on_export)
         menu_archivo.addAction(act_export)
 
@@ -52,25 +56,14 @@ class MainWindow(QMainWindow):
         act_pdf = QAction("Abrir como PDF", self)
         act_pdf.triggered.connect(self._on_generate_pdf)
         menu_herramientas.addAction(act_pdf)
+        act_duplicate = QAction("Duplicar Paciente", self)
+        act_duplicate.triggered.connect(self._on_duplicate_patient)
+        menu_herramientas.addAction(act_duplicate)
 
         menu_acerca = menubar.addMenu("Acerca de")
         act_about = QAction("Acerca de HardForms", self)
         act_about.triggered.connect(self._on_about)
         menu_acerca.addAction(act_about)
-
-        # Toolbar
-        toolbar = QToolBar()
-        toolbar.setMovable(False)
-        self.addToolBar(toolbar)
-
-        toolbar.addAction(act_new)
-        toolbar.addAction(act_edit)
-        toolbar.addAction(act_delete)
-        toolbar.addSeparator()
-        toolbar.addAction(act_import)
-        toolbar.addAction(act_export)
-        toolbar.addSeparator()
-        toolbar.addAction(act_pdf)
 
         # Central widget
         central = QWidget()
@@ -100,6 +93,20 @@ class MainWindow(QMainWindow):
         self.table.setColumnHidden(0, True)
         self.table.doubleClicked.connect(self._on_view_patient)
         layout.addWidget(self.table)
+
+        # Floating button bottom-right
+        btn_layout = QHBoxLayout()
+        btn_layout.addStretch()
+        self.btn_new_float = QPushButton("+ Nuevo Paciente")
+        self.btn_new_float.setFixedHeight(36)
+        self.btn_new_float.setStyleSheet(
+            "QPushButton { background-color: #2980B9; color: white; border: none; "
+            "border-radius: 4px; padding: 6px 16px; font-weight: bold; font-size: 13px; }"
+            "QPushButton:hover { background-color: #3498DB; }"
+        )
+        self.btn_new_float.clicked.connect(self._on_new_patient)
+        btn_layout.addWidget(self.btn_new_float)
+        layout.addLayout(btn_layout)
 
         # Status bar
         self.status_bar = QStatusBar()
@@ -169,6 +176,82 @@ class MainWindow(QMainWindow):
         if reply == QMessageBox.StandardButton.Yes:
             delete_patient(patient_id)
             self._load_patients(self.search_input.text().strip())
+
+    def _on_import_csv(self):
+        file_path, _ = QFileDialog.getOpenFileName(
+            self, "Importar CSV", "", "CSV (*.csv)"
+        )
+        if not file_path:
+            return
+        try:
+            import csv
+            from models.patient import Patient
+            from database.db import get_next_medical_record_number
+
+            count = 0
+            with open(file_path, encoding="utf-8-sig") as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    first = (row.get("Nombre") or "").strip()
+                    last = (row.get("Apellido") or "").strip()
+                    if not first or not last:
+                        continue
+                    p = Patient(
+                        first_name=first, last_name=last,
+                        dni=(row.get("DNI") or "").strip(),
+                        birth_date=(row.get("FechaNacimiento") or "").strip(),
+                        phone=(row.get("Telefono") or "").strip(),
+                        email=(row.get("Email") or "").strip(),
+                        address=(row.get("Domicilio") or "").strip(),
+                        medical_record_number=get_next_medical_record_number(),
+                        insurance=(row.get("Afiliado") or "").strip(),
+                        insurance_number=(row.get("AfiliadoNro") or "").strip(),
+                        doctor=(row.get("Medico") or "").strip(),
+                        description=(row.get("Informe") or "").strip(),
+                    )
+                    insert_patient(p)
+                    count += 1
+            QMessageBox.information(self, "Importado", f"{count} pacientes importados.")
+            self._load_patients(self.search_input.text().strip())
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"No se pudo importar CSV:\n{e}")
+
+    def _on_duplicate_patient(self):
+        patient_id = self._get_selected_patient_id()
+        if patient_id is None:
+            return
+        from database.db import get_next_medical_record_number
+        original = get_patient(patient_id)
+        if original is None:
+            return
+        diagnoses = get_diagnoses_for_patient(patient_id)
+        dup = Patient(
+            first_name=original.first_name,
+            last_name=original.last_name,
+            dni=original.dni,
+            birth_date=original.birth_date,
+            phone=original.phone,
+            email=original.email,
+            address=original.address,
+            medical_record_number=get_next_medical_record_number(),
+            insurance=original.insurance,
+            insurance_number=original.insurance_number,
+            doctor=original.doctor,
+            anesthesia_type=original.anesthesia_type,
+            drug=original.drug,
+            postop=original.postop,
+            anesthesiologist=original.anesthesiologist,
+            boston_scale=original.boston_scale,
+            description=original.description,
+        )
+        new_id = insert_patient(dup)
+        for d in diagnoses:
+            insert_diagnosis(Diagnosis(
+                patient_id=new_id, description=d.description, date=d.date
+            ))
+        QMessageBox.information(self, "Duplicado",
+                                f"Paciente duplicado correctamente.\nNueva HC: {dup.medical_record_number}")
+        self._load_patients(self.search_input.text().strip())
 
     def _on_export(self):
         import csv
