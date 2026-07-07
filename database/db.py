@@ -63,6 +63,19 @@ def init_db():
         conn.execute("ALTER TABLE patients ADD COLUMN insurance_number TEXT")
     except Exception:
         pass
+    for col in ["doctor", "anesthesia_type", "drug", "postop", "anesthesiologist", "boston_scale"]:
+        try:
+            conn.execute(f"ALTER TABLE patients ADD COLUMN {col} TEXT")
+        except Exception:
+            pass
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS lookup_lists (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            list_type TEXT NOT NULL,
+            value TEXT NOT NULL,
+            UNIQUE(list_type, value)
+        )
+    """)
     conn.commit()
     conn.close()
 
@@ -75,15 +88,23 @@ def get_next_medical_record_number() -> str:
     return f"HC-{last + 1:05d}"
 
 
+PATIENT_COLS = (
+    "first_name, last_name, dni, birth_date, phone, email, "
+    "address, medical_record_number, insurance, insurance_number, "
+    "doctor, anesthesia_type, drug, postop, anesthesiologist, boston_scale, "
+    "description, attachments"
+)
+PATIENT_PLACEHOLDERS = ", ".join("?" for _ in range(18))
+
+
 def insert_patient(p: Patient) -> int:
     conn = get_connection()
-    cur = conn.execute("""
-        INSERT INTO patients (first_name, last_name, dni, birth_date, phone, email,
-                              address, medical_record_number, insurance, insurance_number,
-                              description, attachments)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    cur = conn.execute(f"""
+        INSERT INTO patients ({PATIENT_COLS})
+        VALUES ({PATIENT_PLACEHOLDERS})
     """, (p.first_name, p.last_name, p.dni, p.birth_date, p.phone, p.email,
           p.address, p.medical_record_number, p.insurance, p.insurance_number,
+          p.doctor, p.anesthesia_type, p.drug, p.postop, p.anesthesiologist, p.boston_scale,
           p.description, _attachments_to_str(p.attachments)))
     conn.commit()
     conn.close()
@@ -92,15 +113,18 @@ def insert_patient(p: Patient) -> int:
 
 def update_patient(p: Patient):
     conn = get_connection()
-    conn.execute("""
+    conn.execute(f"""
         UPDATE patients SET first_name=?, last_name=?, dni=?, birth_date=?, phone=?,
                             email=?, address=?, medical_record_number=?,
                             insurance=?, insurance_number=?,
+                            doctor=?, anesthesia_type=?, drug=?, postop=?,
+                            anesthesiologist=?, boston_scale=?,
                             description=?, attachments=?,
                             updated_at=datetime('now','localtime')
         WHERE id=?
     """, (p.first_name, p.last_name, p.dni, p.birth_date, p.phone, p.email,
           p.address, p.medical_record_number, p.insurance, p.insurance_number,
+          p.doctor, p.anesthesia_type, p.drug, p.postop, p.anesthesiologist, p.boston_scale,
           p.description, _attachments_to_str(p.attachments), p.id))
     conn.commit()
     conn.close()
@@ -191,6 +215,12 @@ def _row_to_patient(row: sqlite3.Row) -> Patient:
         medical_record_number=row["medical_record_number"],
         insurance=row["insurance"] or "",
         insurance_number=row["insurance_number"] or "",
+        doctor=row["doctor"] or "",
+        anesthesia_type=row["anesthesia_type"] or "",
+        drug=row["drug"] or "",
+        postop=row["postop"] or "",
+        anesthesiologist=row["anesthesiologist"] or "",
+        boston_scale=row["boston_scale"] or "",
         description=row["description"],
         attachments=_str_to_attachments(row["attachments"]),
         created_at=row["created_at"],
@@ -244,6 +274,32 @@ def delete_diagnoses_for_patient(patient_id: int):
     conn.execute("DELETE FROM diagnoses WHERE patient_id=?", (patient_id,))
     conn.commit()
     conn.close()
+
+
+# --- Lookup lists ---
+
+def get_lookup_list(list_type: str) -> list[str]:
+    conn = get_connection()
+    rows = conn.execute(
+        "SELECT value FROM lookup_lists WHERE list_type=? ORDER BY value",
+        (list_type,)
+    ).fetchall()
+    conn.close()
+    return [r[0] for r in rows]
+
+
+def add_lookup_value(list_type: str, value: str):
+    if not value.strip():
+        return
+    conn = get_connection()
+    try:
+        conn.execute(
+            "INSERT OR IGNORE INTO lookup_lists (list_type, value) VALUES (?, ?)",
+            (list_type, value.strip())
+        )
+        conn.commit()
+    finally:
+        conn.close()
 
 
 def _row_to_diagnosis(row: sqlite3.Row) -> Diagnosis:

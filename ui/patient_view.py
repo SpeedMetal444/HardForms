@@ -1,13 +1,15 @@
 import os
+import tempfile
 from PyQt6.QtWidgets import (
     QDialog, QWidget, QVBoxLayout, QHBoxLayout, QFormLayout,
-    QLineEdit, QTextEdit, QPushButton, QLabel, QScrollArea,
+    QPushButton, QLabel, QScrollArea,
     QTableWidget, QTableWidgetItem, QGroupBox, QAbstractItemView,
 )
-from PyQt6.QtCore import Qt, QSize
-from PyQt6.QtGui import QPixmap, QIcon
+from PyQt6.QtCore import Qt, QUrl
+from PyQt6.QtGui import QPixmap, QDesktopServices
 from database.db import get_patient, get_diagnoses_for_patient
 from config.institution import INSTITUTION
+from reports.pdf_generator import generate_patient_report
 
 
 class PatientView(QDialog):
@@ -29,6 +31,9 @@ class PatientView(QDialog):
         self.btn_edit = QPushButton("Editar")
         self.btn_edit.clicked.connect(self._on_edit)
         btn_layout.addWidget(self.btn_edit)
+        self.btn_print = QPushButton("Imprimir")
+        self.btn_print.clicked.connect(self._on_print)
+        btn_layout.addWidget(self.btn_print)
         btn_layout.addStretch()
         self.btn_close = QPushButton("Cerrar")
         self.btn_close.clicked.connect(self.accept)
@@ -80,7 +85,31 @@ class PatientView(QDialog):
         self.lbl_mrn = QLabel()
         info_form.addRow("Nro. Historia:", self.lbl_mrn)
 
+        self.lbl_doctor = QLabel()
+        info_form.addRow("Médico operador:", self.lbl_doctor)
+
         scroll_layout.addWidget(info_group)
+
+        # Anestesia / Preparación
+        anes_group = QGroupBox("Anestesia / Preparación")
+        anes_form = QFormLayout(anes_group)
+
+        self.lbl_anesthesia_type = QLabel()
+        anes_form.addRow("Tipo:", self.lbl_anesthesia_type)
+
+        self.lbl_drug = QLabel()
+        anes_form.addRow("Droga:", self.lbl_drug)
+
+        self.lbl_postop = QLabel()
+        anes_form.addRow("Postoperatorio:", self.lbl_postop)
+
+        self.lbl_anesthesiologist = QLabel()
+        anes_form.addRow("Anestesiólogo:", self.lbl_anesthesiologist)
+
+        self.lbl_boston = QLabel()
+        anes_form.addRow("Escala de Boston:", self.lbl_boston)
+
+        scroll_layout.addWidget(anes_group)
 
         # Diagnoses
         diag_group = QGroupBox("Diagnósticos")
@@ -129,6 +158,12 @@ class PatientView(QDialog):
         self.lbl_email.setText(p.email or "-")
         self.lbl_address.setText(p.address or "-")
         self.lbl_mrn.setText(p.medical_record_number or "-")
+        self.lbl_doctor.setText(p.doctor or "-")
+        self.lbl_anesthesia_type.setText(p.anesthesia_type or "-")
+        self.lbl_drug.setText(p.drug or "-")
+        self.lbl_postop.setText(p.postop or "-")
+        self.lbl_anesthesiologist.setText(p.anesthesiologist or "-")
+        self.lbl_boston.setText(p.boston_scale or "-")
         self.lbl_description.setText(p.description or "(sin informe)")
 
         # Diagnoses
@@ -159,3 +194,15 @@ class PatientView(QDialog):
         dialog = PatientDialog(self, self.patient_id)
         if dialog.exec():
             self._load_patient(self.patient_id)
+
+    def _on_print(self):
+        if not self.patient_id:
+            return
+        tmp = tempfile.NamedTemporaryFile(suffix=".pdf", delete=False)
+        tmp.close()
+        try:
+            generate_patient_report(self.patient_id, tmp.name)
+            QDesktopServices.openUrl(QUrl.fromLocalFile(tmp.name))
+        except Exception as e:
+            from PyQt6.QtWidgets import QMessageBox
+            QMessageBox.critical(self, "Error", f"No se pudo generar el informe:\n{e}")

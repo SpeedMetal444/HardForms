@@ -122,6 +122,12 @@ def import_estudios(csv_path, conn, progress=None):
                 birth_date=birth_date,
                 insurance=(row.get("Cobertura") or "").strip(),
                 insurance_number=(row.get("AfiliadoNro") or "").strip(),
+                doctor=(row.get("Operador") or "").strip(),
+                anesthesia_type=(row.get("Anestesia") or "").strip(),
+                drug=(row.get("Drogas") or "").strip(),
+                postop=(row.get("Recuperacion") or "").strip(),
+                anesthesiologist=(row.get("Anestesiologo") or "").strip(),
+                boston_scale=(row.get("Boston") or "").strip(),
                 description=description,
             )
 

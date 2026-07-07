@@ -9,6 +9,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QPixmap, QIcon
+from PyQt6.QtWidgets import QComboBox
 from ui.widgets import DateMaskEdit
 from models.patient import Patient, ImageAttachment
 from models.diagnosis import Diagnosis
@@ -16,6 +17,7 @@ from database.db import (
     insert_patient, update_patient, get_patient,
     get_diagnoses_for_patient, insert_diagnosis,
     delete_diagnoses_for_patient, get_next_medical_record_number,
+    get_lookup_list, add_lookup_value,
 )
 
 
@@ -88,6 +90,39 @@ class PatientDialog(QDialog):
         form.addRow("Nro. Historia:", self.input_mrn)
 
         scroll_layout.addLayout(form)
+
+        # Médico operador
+        self.input_doctor = self._make_combo("doctor", "Médico operador")
+        form.addRow("Médico operador:", self.input_doctor)
+
+        scroll_layout.addLayout(form)
+
+        # Anestesia / Preparación
+        anes_group = QGroupBox("Anestesia / Preparación")
+        anes_layout = QFormLayout(anes_group)
+
+        self.input_anesthesia_type = QComboBox()
+        self.input_anesthesia_type.setEditable(True)
+        self.input_anesthesia_type.addItems(["", "Local", "General"])
+        anes_layout.addRow("Tipo:", self.input_anesthesia_type)
+
+        self.input_drug = QLineEdit()
+        self.input_drug.setPlaceholderText("Droga utilizada")
+        anes_layout.addRow("Droga:", self.input_drug)
+
+        self.input_postop = QLineEdit()
+        self.input_postop.setPlaceholderText("Postoperatorio")
+        anes_layout.addRow("Postoperatorio:", self.input_postop)
+
+        self.input_anesthesiologist = self._make_combo("anesthesiologist", "Anestesiólogo")
+        anes_layout.addRow("Anestesiólogo:", self.input_anesthesiologist)
+
+        self.input_boston = QComboBox()
+        self.input_boston.setEditable(True)
+        self.input_boston.addItems(["", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9"])
+        anes_layout.addRow("Escala de Boston (0-9):", self.input_boston)
+
+        scroll_layout.addWidget(anes_group)
 
         # Diagnoses section
         diag_group = QGroupBox("Diagnósticos")
@@ -181,6 +216,18 @@ class PatientDialog(QDialog):
         buttons.rejected.connect(self.reject)
         scroll_layout.addWidget(buttons)
 
+    def _make_combo(self, list_type: str, placeholder: str) -> QComboBox:
+        combo = QComboBox()
+        combo.setEditable(True)
+        combo.setPlaceholderText(placeholder)
+        combo.addItems(get_lookup_list(list_type))
+        return combo
+
+    def _save_combo_value(self, combo: QComboBox, list_type: str):
+        val = combo.currentText().strip()
+        if val:
+            add_lookup_value(list_type, val)
+
     def _load_patient(self, patient_id: int):
         p = get_patient(patient_id)
         if p is None:
@@ -195,6 +242,12 @@ class PatientDialog(QDialog):
         self.input_email.setText(p.email)
         self.input_address.setText(p.address)
         self.input_mrn.setText(p.medical_record_number)
+        self.input_doctor.setCurrentText(p.doctor)
+        self.input_anesthesia_type.setCurrentText(p.anesthesia_type)
+        self.input_drug.setText(p.drug)
+        self.input_postop.setText(p.postop)
+        self.input_anesthesiologist.setCurrentText(p.anesthesiologist)
+        self.input_boston.setCurrentText(p.boston_scale)
         self.input_description.setPlainText(p.description)
         self.attachments = [ImageAttachment(path=a.path, description=a.description) for a in p.attachments]
         self.diagnoses = get_diagnoses_for_patient(patient_id)
@@ -335,6 +388,9 @@ class PatientDialog(QDialog):
             QMessageBox.warning(self, "Campos requeridos", "Nombre y Apellido son obligatorios.")
             return
 
+        self._save_combo_value(self.input_doctor, "doctor")
+        self._save_combo_value(self.input_anesthesiologist, "anesthesiologist")
+
         p = Patient(
             id=self.patient_id,
             first_name=first_name,
@@ -347,6 +403,12 @@ class PatientDialog(QDialog):
             medical_record_number=self.input_mrn.text().strip(),
             insurance=self.input_insurance.text().strip(),
             insurance_number=self.input_insurance_number.text().strip(),
+            doctor=self.input_doctor.currentText().strip(),
+            anesthesia_type=self.input_anesthesia_type.currentText().strip(),
+            drug=self.input_drug.text().strip(),
+            postop=self.input_postop.text().strip(),
+            anesthesiologist=self.input_anesthesiologist.currentText().strip(),
+            boston_scale=self.input_boston.currentText().strip(),
             description=self.input_description.toPlainText().strip(),
             attachments=self.attachments,
         )

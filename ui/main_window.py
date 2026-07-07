@@ -1,13 +1,13 @@
 import os
-import re
+import tempfile
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QPushButton, QLineEdit, QTableWidget, QTableWidgetItem,
     QHeaderView, QMessageBox, QFileDialog, QLabel, QToolBar,
     QStatusBar, QAbstractItemView, QProgressDialog
 )
-from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtGui import QAction, QIcon, QPixmap
+from PyQt6.QtCore import Qt, QUrl
+from PyQt6.QtGui import QAction, QIcon, QPixmap, QDesktopServices
 from database.db import get_all_patients, search_patients, delete_patient, get_patient, get_diagnoses_for_patient
 from ui.patient_dialog import PatientDialog
 from ui.patient_view import PatientView
@@ -51,7 +51,7 @@ class MainWindow(QMainWindow):
 
         toolbar.addSeparator()
 
-        btn_report = QAction("Generar Informe PDF", self)
+        btn_report = QAction("Imprimir", self)
         btn_report.triggered.connect(self._on_generate_pdf)
         toolbar.addAction(btn_report)
 
@@ -211,19 +211,10 @@ class MainWindow(QMainWindow):
         if patient is None:
             return
 
-        diagnoses = get_diagnoses_for_patient(patient_id)
-        diag_name = diagnoses[0].description if diagnoses else "sin-diagnostico"
-        safe_name = re.sub(r'[\\/*?:"<>|]', "", f"{patient.last_name}_{patient.first_name}")
-        safe_diag = re.sub(r'[\\/*?:"<>|]', "", diag_name)[:40]
-        suggested = f"{safe_name}_{safe_diag}.pdf"
-
-        file_path, _ = QFileDialog.getSaveFileName(
-            self, "Guardar informe PDF", suggested, "PDF (*.pdf)"
-        )
-        if not file_path:
-            return
+        tmp = tempfile.NamedTemporaryFile(suffix=".pdf", delete=False)
+        tmp.close()
         try:
-            generate_patient_report(patient_id, file_path)
-            QMessageBox.information(self, "PDF generado", f"Informe guardado en:\n{file_path}")
+            generate_patient_report(patient_id, tmp.name)
+            QDesktopServices.openUrl(QUrl.fromLocalFile(tmp.name))
         except Exception as e:
-            QMessageBox.critical(self, "Error", f"No se pudo generar el PDF:\n{e}")
+            QMessageBox.critical(self, "Error", f"No se pudo generar el informe:\n{e}")

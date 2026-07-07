@@ -21,6 +21,12 @@ class Patient:
     medical_record_number: str = ""
     insurance: str = ""
     insurance_number: str = ""
+    doctor: str = ""
+    anesthesia_type: str = ""
+    drug: str = ""
+    postop: str = ""
+    anesthesiologist: str = ""
+    boston_scale: str = ""
     description: str = ""
     attachments: List[ImageAttachment] = field(default_factory=list)
     created_at: str = ""
