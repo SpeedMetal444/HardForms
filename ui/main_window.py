@@ -45,6 +45,10 @@ class MainWindow(QMainWindow):
         act_import = QAction("Importar", self)
         act_import.triggered.connect(self._on_import)
         menu_archivo.addAction(act_import)
+        act_import_zip = QAction("Restaurar desde ZIP...", self)
+        act_import_zip.triggered.connect(self._on_import_zip)
+        menu_archivo.addAction(act_import_zip)
+        menu_archivo.addSeparator()
         menu_export = menu_archivo.addMenu("Exportar")
         act_export_csv = QAction("CSV...", self)
         act_export_csv.triggered.connect(self._on_export_csv)
@@ -252,7 +256,7 @@ class MainWindow(QMainWindow):
             QMessageBox.critical(self, "Error", f"No se pudo exportar:\n{e}")
 
     def _on_export_zip(self):
-        import zipfile, shutil
+        import zipfile
         from database.db import get_all_patients, DB_PATH
 
         file_path, _ = QFileDialog.getSaveFileName(
@@ -272,10 +276,10 @@ class MainWindow(QMainWindow):
                             continue
                         if os.path.isfile(img_path):
                             seen.add(img_path)
-                            arcname = f"images/{os.path.basename(img_path)}"
-                            # evitar colisiones
-                            if any(x == arcname for x in zf.namelist()):
-                                arcname = f"images/{os.path.basename(os.path.dirname(img_path))}_{os.path.basename(img_path)}"
+                            # guardar con ruta completa sin drive letter
+                            # d:\ESTUDIOS\HERNAN\foto.jpg -> images/d/ESTUDIOS/HERNAN/foto.jpg
+                            normalized = img_path.replace(":", "")
+                            arcname = f"images/{normalized}".replace("\\", "/")
                             zf.write(img_path, arcname)
             QMessageBox.information(
                 self, "Backup creado",
@@ -284,6 +288,59 @@ class MainWindow(QMainWindow):
             )
         except Exception as e:
             QMessageBox.critical(self, "Error", f"No se pudo crear el backup:\n{e}")
+
+    def _on_import_zip(self):
+        import zipfile
+        from database.db import DB_PATH
+
+        file_path, _ = QFileDialog.getOpenFileName(
+            self, "Restaurar backup", "", "ZIP (*.zip)"
+        )
+        if not file_path:
+            return
+        reply = QMessageBox.warning(
+            self, "Restaurar backup",
+            "¿Restaurar desde backup?\n\n"
+            "Se reemplazará la base de datos actual y se extraerán las imágenes.\n"
+            "Esta acción no se puede deshacer.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+        if self.search_input.text().strip() != "BORRAR":
+            QMessageBox.information(
+                self, "Cancelado",
+                "Escribí 'BORRAR' en el campo de búsqueda y volvé a intentar."
+            )
+            return
+
+        try:
+            with zipfile.ZipFile(file_path, "r") as zf:
+                zf.extract("patients.db", os.path.dirname(DB_PATH))
+
+                img_count = 0
+                for name in zf.namelist():
+                    if name.startswith("images/") and not name.endswith("/"):
+                        # images/d/ESTUDIOS/HERNAN/foto.jpg -> d:\ESTUDIOS\HERNAN\foto.jpg
+                        rel = name[len("images/"):]
+                        rest = rel.replace("/", "\\")
+                        orig_path = rest[:1] + ":" + rest[1:]
+                        os.makedirs(os.path.dirname(orig_path), exist_ok=True)
+                        with open(orig_path, "wb") as out:
+                            out.write(zf.read(name))
+                        img_count += 1
+
+            from database.db import init_db
+            init_db()
+            self._load_patients()
+            QMessageBox.information(
+                self, "Restaurado",
+                f"Backup restaurado.\n"
+                f"Base de datos: {DB_PATH}\n"
+                f"Imágenes extraídas: {img_count}"
+            )
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"No se pudo restaurar:\n{e}")
 
     def _on_about(self):
         from config.institution import INSTITUTION
