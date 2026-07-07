@@ -1,6 +1,7 @@
 import sqlite3
 import os
 from models.patient import Patient
+from models.diagnosis import Diagnosis
 from typing import List
 
 DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "patients.db")
@@ -32,6 +33,16 @@ def init_db():
             image_paths TEXT,
             created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
             updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+        )
+    """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS diagnoses (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            patient_id INTEGER NOT NULL,
+            icd10_code TEXT NOT NULL,
+            description TEXT NOT NULL,
+            date TEXT,
+            FOREIGN KEY (patient_id) REFERENCES patients(id) ON DELETE CASCADE
         )
     """)
     conn.commit()
@@ -116,4 +127,61 @@ def _row_to_patient(row: sqlite3.Row) -> Patient:
         image_paths=[p for p in (row["image_paths"] or "").split("\n") if p],
         created_at=row["created_at"],
         updated_at=row["updated_at"],
+    )
+
+
+# --- Diagnoses CRUD ---
+
+def insert_diagnosis(d: Diagnosis) -> int:
+    conn = get_connection()
+    cur = conn.execute("""
+        INSERT INTO diagnoses (patient_id, icd10_code, description, date)
+        VALUES (?, ?, ?, ?)
+    """, (d.patient_id, d.icd10_code, d.description, d.date))
+    conn.commit()
+    conn.close()
+    return cur.lastrowid
+
+
+def update_diagnosis(d: Diagnosis):
+    conn = get_connection()
+    conn.execute("""
+        UPDATE diagnoses SET icd10_code=?, description=?, date=?
+        WHERE id=?
+    """, (d.icd10_code, d.description, d.date, d.id))
+    conn.commit()
+    conn.close()
+
+
+def delete_diagnosis(diagnosis_id: int):
+    conn = get_connection()
+    conn.execute("DELETE FROM diagnoses WHERE id=?", (diagnosis_id,))
+    conn.commit()
+    conn.close()
+
+
+def get_diagnoses_for_patient(patient_id: int) -> List[Diagnosis]:
+    conn = get_connection()
+    rows = conn.execute(
+        "SELECT * FROM diagnoses WHERE patient_id=? ORDER BY date DESC, id DESC",
+        (patient_id,)
+    ).fetchall()
+    conn.close()
+    return [_row_to_diagnosis(r) for r in rows]
+
+
+def delete_diagnoses_for_patient(patient_id: int):
+    conn = get_connection()
+    conn.execute("DELETE FROM diagnoses WHERE patient_id=?", (patient_id,))
+    conn.commit()
+    conn.close()
+
+
+def _row_to_diagnosis(row: sqlite3.Row) -> Diagnosis:
+    return Diagnosis(
+        id=row["id"],
+        patient_id=row["patient_id"],
+        icd10_code=row["icd10_code"],
+        description=row["description"],
+        date=row["date"],
     )

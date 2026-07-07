@@ -4,12 +4,17 @@ from PyQt6.QtWidgets import (
     QLineEdit, QTextEdit, QPushButton, QLabel, QScrollArea,
     QMessageBox, QFileDialog, QListWidget, QListWidgetItem,
     QDialogButtonBox, QGroupBox, QGridLayout, QAbstractItemView,
-    QSizePolicy
+    QTableWidget, QTableWidgetItem, QHeaderView, QInputDialog,
 )
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QPixmap
 from models.patient import Patient
-from database.db import insert_patient, update_patient, get_patient
+from models.diagnosis import Diagnosis
+from database.db import (
+    insert_patient, update_patient, get_patient,
+    get_diagnoses_for_patient, insert_diagnosis,
+    update_diagnosis, delete_diagnosis, delete_diagnoses_for_patient,
+)
 
 
 class PatientDialog(QDialog):
@@ -17,8 +22,9 @@ class PatientDialog(QDialog):
         super().__init__(parent)
         self.patient_id = patient_id
         self.image_paths: list[str] = []
+        self.diagnoses: list[Diagnosis] = []
         self.setWindowTitle("Editar Paciente" if patient_id else "Nuevo Paciente")
-        self.setMinimumSize(800, 650)
+        self.setMinimumSize(850, 750)
         self._setup_ui()
 
         if patient_id:
@@ -26,6 +32,12 @@ class PatientDialog(QDialog):
 
     def _setup_ui(self):
         layout = QVBoxLayout(self)
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll_content = QWidget()
+        scroll_layout = QVBoxLayout(scroll_content)
+        layout.addWidget(scroll)
+        scroll.setWidget(scroll_content)
 
         # Form fields
         form = QFormLayout()
@@ -62,7 +74,36 @@ class PatientDialog(QDialog):
         self.input_mrn.setPlaceholderText("Nro. Historia Clínica")
         form.addRow("Nro. Historia:", self.input_mrn)
 
-        layout.addLayout(form)
+        scroll_layout.addLayout(form)
+
+        # Diagnoses section
+        diag_group = QGroupBox("Diagnósticos (CIE-10)")
+        diag_layout = QVBoxLayout(diag_group)
+
+        btn_diag_layout = QHBoxLayout()
+        btn_add_diag = QPushButton("Agregar diagnóstico")
+        btn_add_diag.clicked.connect(self._on_add_diagnosis)
+        btn_edit_diag = QPushButton("Editar")
+        btn_edit_diag.clicked.connect(self._on_edit_diagnosis)
+        btn_del_diag = QPushButton("Quitar")
+        btn_del_diag.clicked.connect(self._on_remove_diagnosis)
+        btn_diag_layout.addWidget(btn_add_diag)
+        btn_diag_layout.addWidget(btn_edit_diag)
+        btn_diag_layout.addWidget(btn_del_diag)
+        btn_diag_layout.addStretch()
+        diag_layout.addLayout(btn_diag_layout)
+
+        self.diag_table = QTableWidget()
+        self.diag_table.setColumnCount(3)
+        self.diag_table.setHorizontalHeaderLabels(["Código CIE-10", "Diagnóstico", "Fecha"])
+        self.diag_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.diag_table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self.diag_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.diag_table.horizontalHeader().setStretchLastSection(True)
+        self.diag_table.setMinimumHeight(120)
+        diag_layout.addWidget(self.diag_table)
+
+        scroll_layout.addWidget(diag_group)
 
         # Description
         desc_group = QGroupBox("Descripción / Informe Médico")
@@ -71,7 +112,7 @@ class PatientDialog(QDialog):
         self.input_description.setPlaceholderText("Escribí aquí el informe médico...")
         self.input_description.setMinimumHeight(120)
         desc_layout.addWidget(self.input_description)
-        layout.addWidget(desc_group)
+        scroll_layout.addWidget(desc_group)
 
         # Images
         img_group = QGroupBox("Imágenes adjuntas")
@@ -98,7 +139,7 @@ class PatientDialog(QDialog):
         self.image_preview.setStyleSheet("background-color: #f0f0f0; border: 1px solid #ccc;")
         img_layout.addWidget(self.image_preview)
 
-        layout.addWidget(img_group)
+        scroll_layout.addWidget(img_group)
 
         # Buttons
         buttons = QDialogButtonBox(
@@ -106,7 +147,7 @@ class PatientDialog(QDialog):
         )
         buttons.accepted.connect(self._on_accept)
         buttons.rejected.connect(self.reject)
-        layout.addWidget(buttons)
+        scroll_layout.addWidget(buttons)
 
     def _load_patient(self, patient_id: int):
         p = get_patient(patient_id)
@@ -122,7 +163,72 @@ class PatientDialog(QDialog):
         self.input_mrn.setText(p.medical_record_number)
         self.input_description.setPlainText(p.description)
         self.image_paths = list(p.image_paths)
+        self.diagnoses = get_diagnoses_for_patient(patient_id)
         self._refresh_image_list()
+        self._refresh_diag_table()
+
+    # --- Diagnoses ---
+
+    def _on_add_diagnosis(self):
+        diag = self._diagnosis_dialog()
+        if diag:
+            self.diagnoses.append(diag)
+            self._refresh_diag_table()
+
+    def _on_edit_diagnosis(self):
+        row = self.diag_table.currentRow()
+        if row < 0:
+            QMessageBox.information(self, "Seleccionar", "Seleccioná un diagnóstico.")
+            return
+        diag = self.diagnoses[row]
+        updated = self._diagnosis_dialog(diag)
+        if updated:
+            self.diagnoses[row] = updated
+            self._refresh_diag_table()
+
+    def _on_remove_diagnosis(self):
+        row = self.diag_table.currentRow()
+        if row < 0:
+            return
+        self.diagnoses.pop(row)
+        self._refresh_diag_table()
+
+    def _diagnosis_dialog(self, existing: Diagnosis | None = None) -> Diagnosis | None:
+        code, ok = QInputDialog.getText(
+            self, "Código CIE-10", "Código (ej: J15.9):",
+            text=existing.icd10_code if existing else ""
+        )
+        if not ok or not code.strip():
+            return None
+        desc, ok = QInputDialog.getText(
+            self, "Descripción del diagnóstico", "Diagnóstico:",
+            text=existing.description if existing else ""
+        )
+        if not ok or not desc.strip():
+            return None
+        date, ok = QInputDialog.getText(
+            self, "Fecha", "Fecha (DD/MM/AAAA):",
+            text=existing.date if existing else ""
+        )
+        if not ok:
+            return None
+        return Diagnosis(
+            id=existing.id if existing else None,
+            patient_id=existing.patient_id if existing else (self.patient_id or 0),
+            icd10_code=code.strip(),
+            description=desc.strip(),
+            date=date.strip(),
+        )
+
+    def _refresh_diag_table(self):
+        self.diag_table.setRowCount(len(self.diagnoses))
+        for i, d in enumerate(self.diagnoses):
+            self.diag_table.setItem(i, 0, QTableWidgetItem(d.icd10_code))
+            self.diag_table.setItem(i, 1, QTableWidgetItem(d.description))
+            self.diag_table.setItem(i, 2, QTableWidgetItem(d.date))
+        self.diag_table.resizeColumnsToContents()
+
+    # --- Images ---
 
     def _on_add_image(self):
         files, _ = QFileDialog.getOpenFileNames(
@@ -192,7 +298,12 @@ class PatientDialog(QDialog):
 
         if self.patient_id:
             update_patient(p)
+            delete_diagnoses_for_patient(self.patient_id)
         else:
-            insert_patient(p)
+            self.patient_id = insert_patient(p)
+
+        for d in self.diagnoses:
+            d.patient_id = self.patient_id
+            insert_diagnosis(d)
 
         self.accept()
