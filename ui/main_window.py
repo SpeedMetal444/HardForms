@@ -4,7 +4,7 @@ from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QPushButton, QLineEdit, QTableWidget, QTableWidgetItem,
     QHeaderView, QMessageBox, QFileDialog, QLabel, QToolBar,
-    QStatusBar, QAbstractItemView, QProgressDialog
+    QStatusBar, QAbstractItemView, QProgressDialog, QMenuBar,
 )
 from PyQt6.QtCore import Qt, QUrl
 from PyQt6.QtGui import QAction, QIcon, QPixmap, QDesktopServices
@@ -26,34 +26,51 @@ class MainWindow(QMainWindow):
         self._load_patients()
 
     def _setup_ui(self):
+        # Menu bar
+        menubar = QMenuBar()
+        self.setMenuBar(menubar)
+
+        menu_archivo = menubar.addMenu("Archivo")
+        act_new = QAction("Nuevo Paciente", self)
+        act_new.triggered.connect(self._on_new_patient)
+        menu_archivo.addAction(act_new)
+        act_edit = QAction("Editar", self)
+        act_edit.triggered.connect(self._on_edit_patient)
+        menu_archivo.addAction(act_edit)
+        act_delete = QAction("Eliminar", self)
+        act_delete.triggered.connect(self._on_delete_patient)
+        menu_archivo.addAction(act_delete)
+        menu_archivo.addSeparator()
+        act_import = QAction("Importar", self)
+        act_import.triggered.connect(self._on_import)
+        menu_archivo.addAction(act_import)
+        act_export = QAction("Exportar", self)
+        act_export.triggered.connect(self._on_export)
+        menu_archivo.addAction(act_export)
+
+        menu_herramientas = menubar.addMenu("Herramientas")
+        act_pdf = QAction("Abrir como PDF", self)
+        act_pdf.triggered.connect(self._on_generate_pdf)
+        menu_herramientas.addAction(act_pdf)
+
+        menu_acerca = menubar.addMenu("Acerca de")
+        act_about = QAction("Acerca de HardForms", self)
+        act_about.triggered.connect(self._on_about)
+        menu_acerca.addAction(act_about)
+
         # Toolbar
         toolbar = QToolBar()
         toolbar.setMovable(False)
         self.addToolBar(toolbar)
 
-        btn_new = QAction("Nuevo Paciente", self)
-        btn_new.triggered.connect(self._on_new_patient)
-        toolbar.addAction(btn_new)
-
-        btn_edit = QAction("Editar", self)
-        btn_edit.triggered.connect(self._on_edit_patient)
-        toolbar.addAction(btn_edit)
-
-        btn_delete = QAction("Eliminar", self)
-        btn_delete.triggered.connect(self._on_delete_patient)
-        toolbar.addAction(btn_delete)
-
+        toolbar.addAction(act_new)
+        toolbar.addAction(act_edit)
+        toolbar.addAction(act_delete)
         toolbar.addSeparator()
-
-        btn_import = QAction("Importar", self)
-        btn_import.triggered.connect(self._on_import)
-        toolbar.addAction(btn_import)
-
+        toolbar.addAction(act_import)
+        toolbar.addAction(act_export)
         toolbar.addSeparator()
-
-        btn_report = QAction("Abrir como PDF", self)
-        btn_report.triggered.connect(self._on_generate_pdf)
-        toolbar.addAction(btn_report)
+        toolbar.addAction(act_pdf)
 
         # Central widget
         central = QWidget()
@@ -152,6 +169,42 @@ class MainWindow(QMainWindow):
         if reply == QMessageBox.StandardButton.Yes:
             delete_patient(patient_id)
             self._load_patients(self.search_input.text().strip())
+
+    def _on_export(self):
+        import csv
+        file_path, _ = QFileDialog.getSaveFileName(
+            self, "Exportar pacientes", "pacientes.csv", "CSV (*.csv)"
+        )
+        if not file_path:
+            return
+        patients = get_all_patients()
+        try:
+            with open(file_path, "w", newline="", encoding="utf-8-sig") as f:
+                writer = csv.writer(f)
+                writer.writerow(["Apellido", "Nombre", "DNI", "Afiliado", "Afiliado Nº",
+                                 "Nro. Historia", "Médico", "Anestesia", "Droga",
+                                 "Anestesiólogo", "Boston", "Fecha Estudio"])
+                for p in patients:
+                    writer.writerow([
+                        p.last_name, p.first_name, p.dni, p.insurance, p.insurance_number,
+                        p.medical_record_number, p.doctor, p.anesthesia_type, p.drug,
+                        p.anesthesiologist, p.boston_scale, p.last_study_date,
+                    ])
+            QMessageBox.information(self, "Exportado",
+                                    f"{len(patients)} pacientes exportados a:\n{file_path}")
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"No se pudo exportar:\n{e}")
+
+    def _on_about(self):
+        from config.institution import INSTITUTION
+        QMessageBox.about(
+            self, "Acerca de HardForms",
+            f"<b>HardForms</b><br><br>"
+            f"<b>{INSTITUTION['name']}</b><br>"
+            f"{INSTITUTION.get('address', '')}<br><br>"
+            f"Versión 1.0<br>"
+            f"Sistema de gestión de pacientes e informes médicos."
+        )
 
     def _on_import(self):
         file_path, _ = QFileDialog.getOpenFileName(
