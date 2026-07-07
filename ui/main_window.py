@@ -56,6 +56,10 @@ class MainWindow(QMainWindow):
         act_duplicate = QAction("Duplicar Paciente", self)
         act_duplicate.triggered.connect(self._on_duplicate_patient)
         menu_herramientas.addAction(act_duplicate)
+        menu_herramientas.addSeparator()
+        act_clear = QAction("Borrar Base de Datos", self)
+        act_clear.triggered.connect(self._on_clear_database)
+        menu_herramientas.addAction(act_clear)
 
         menu_acerca = menubar.addMenu("Acerca de")
         act_about = QAction("Acerca de HardForms", self)
@@ -368,6 +372,30 @@ class MainWindow(QMainWindow):
             self._load_patients(self.search_input.text().strip())
         except Exception as e:
             QMessageBox.critical(self, "Error", f"No se pudo importar CSV:\n{e}")
+
+    def _on_clear_database(self):
+        reply = QMessageBox.warning(
+            self, "Borrar Base de Datos",
+            "¿Estás seguro de que querés borrar TODOS los pacientes, diagnósticos y "
+            "datos de la base de datos?\n\n"
+            "Esta acción no se puede deshacer.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+        if self.search_input.text().strip() != "BORRAR":
+            QMessageBox.information(
+                self, "Confirmación requerida",
+                "Escribí 'BORRAR' (mayúsculas) en el campo de búsqueda y "
+                "volvé a hacer clic en 'Borrar Base de Datos'."
+            )
+            return
+        from database.db import clear_all_data
+        clear_all_data()
+        self.search_input.clear()
+        self._load_patients()
+        QMessageBox.information(self, "Base de datos borrada",
+                                "Todos los datos fueron eliminados.")
 
     def _on_generate_pdf(self):
         patient_id = self._get_selected_patient_id()

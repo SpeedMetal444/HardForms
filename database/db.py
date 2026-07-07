@@ -302,6 +302,18 @@ def add_lookup_value(list_type: str, value: str):
         conn.close()
 
 
+def clear_all_data():
+    conn = get_connection()
+    try:
+        conn.execute("DELETE FROM diagnoses")
+        conn.execute("DELETE FROM patients")
+        conn.execute("DELETE FROM lookup_lists")
+        conn.execute("DELETE FROM sqlite_sequence")  # reseta autoincrement
+        conn.commit()
+    finally:
+        conn.close()
+
+
 def _row_to_diagnosis(row: sqlite3.Row) -> Diagnosis:
     return Diagnosis(
         id=row["id"],
