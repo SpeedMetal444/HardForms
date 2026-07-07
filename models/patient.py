@@ -23,6 +23,7 @@ class Patient:
     attachments: List[ImageAttachment] = field(default_factory=list)
     created_at: str = ""
     updated_at: str = ""
+    last_study_date: str = ""
 
     @property
     def full_name(self) -> str:

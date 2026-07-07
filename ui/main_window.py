@@ -10,6 +10,7 @@ from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QAction, QIcon, QPixmap
 from database.db import get_all_patients, search_patients, delete_patient, get_patient, get_diagnoses_for_patient
 from ui.patient_dialog import PatientDialog
+from ui.patient_view import PatientView
 from reports.pdf_generator import generate_patient_report
 from config.institution import INSTITUTION
 from importer import run_import
@@ -70,7 +71,7 @@ class MainWindow(QMainWindow):
         self.table = QTableWidget()
         self.table.setColumnCount(7)
         self.table.setHorizontalHeaderLabels([
-            "ID", "Apellido", "Nombre", "DNI", "Teléfono", "Nro. Historia", "Última modificación"
+            "ID", "Apellido", "Nombre", "DNI", "Teléfono", "Nro. Historia", "Fecha Estudio"
         ])
         self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
@@ -78,7 +79,7 @@ class MainWindow(QMainWindow):
         self.table.setAlternatingRowColors(True)
         self.table.horizontalHeader().setStretchLastSection(True)
         self.table.setColumnHidden(0, True)
-        self.table.doubleClicked.connect(self._on_edit_patient)
+        self.table.doubleClicked.connect(self._on_view_patient)
         layout.addWidget(self.table)
 
         # Status bar
@@ -99,7 +100,7 @@ class MainWindow(QMainWindow):
             self.table.setItem(i, 3, QTableWidgetItem(p.dni))
             self.table.setItem(i, 4, QTableWidgetItem(p.phone))
             self.table.setItem(i, 5, QTableWidgetItem(p.medical_record_number))
-            self.table.setItem(i, 6, QTableWidgetItem(p.updated_at))
+            self.table.setItem(i, 6, QTableWidgetItem(p.last_study_date))
 
         self.table.resizeColumnsToContents()
         self.status_bar.showMessage(f"{len(patients)} paciente(s)")
@@ -117,6 +118,14 @@ class MainWindow(QMainWindow):
     def _on_new_patient(self):
         dialog = PatientDialog(self)
         if dialog.exec():
+            self._load_patients(self.search_input.text().strip())
+
+    def _on_view_patient(self):
+        patient_id = self._get_selected_patient_id()
+        if patient_id is None:
+            return
+        view = PatientView(self, patient_id)
+        if view.exec():
             self._load_patients(self.search_input.text().strip())
 
     def _on_edit_patient(self):

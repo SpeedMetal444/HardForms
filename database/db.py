@@ -111,9 +111,19 @@ def get_patient(patient_id: int) -> Patient | None:
     return _row_to_patient(row)
 
 
+PATIENTS_SQL = """
+    SELECT p.*, (
+        SELECT d.date FROM diagnoses d
+        WHERE d.patient_id = p.id
+        ORDER BY d.date DESC, d.id DESC LIMIT 1
+    ) AS last_study_date
+    FROM patients p
+"""
+
+
 def get_all_patients() -> List[Patient]:
     conn = get_connection()
-    rows = conn.execute("SELECT * FROM patients ORDER BY updated_at DESC").fetchall()
+    rows = conn.execute(PATIENTS_SQL + " ORDER BY last_study_date DESC, p.updated_at DESC").fetchall()
     conn.close()
     return [_row_to_patient(r) for r in rows]
 
@@ -121,10 +131,9 @@ def get_all_patients() -> List[Patient]:
 def search_patients(query: str) -> List[Patient]:
     conn = get_connection()
     like = f"%{query}%"
-    rows = conn.execute("""
-        SELECT * FROM patients
-        WHERE first_name LIKE ? OR last_name LIKE ? OR dni LIKE ?
-        ORDER BY updated_at DESC
+    rows = conn.execute(PATIENTS_SQL + """
+        WHERE p.first_name LIKE ? OR p.last_name LIKE ? OR p.dni LIKE ?
+        ORDER BY last_study_date DESC, p.updated_at DESC
     """, (like, like, like)).fetchall()
     conn.close()
     return [_row_to_patient(r) for r in rows]
@@ -165,6 +174,7 @@ def _row_to_patient(row: sqlite3.Row) -> Patient:
         attachments=_str_to_attachments(row["attachments"]),
         created_at=row["created_at"],
         updated_at=row["updated_at"],
+        last_study_date=row["last_study_date"] or "",
     )
 
 
