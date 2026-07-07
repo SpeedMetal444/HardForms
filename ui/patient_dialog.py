@@ -3,17 +3,17 @@ from PyQt6.QtWidgets import (
     QDialog, QWidget, QVBoxLayout, QHBoxLayout, QFormLayout,
     QLineEdit, QTextEdit, QPushButton, QLabel, QScrollArea,
     QMessageBox, QFileDialog, QListWidget, QListWidgetItem,
-    QDialogButtonBox, QGroupBox, QGridLayout, QAbstractItemView,
-    QTableWidget, QTableWidgetItem, QHeaderView, QInputDialog,
+    QDialogButtonBox, QGroupBox, QAbstractItemView,
+    QTableWidget, QTableWidgetItem, QInputDialog,
 )
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QPixmap
-from models.patient import Patient
+from models.patient import Patient, ImageAttachment
 from models.diagnosis import Diagnosis
 from database.db import (
     insert_patient, update_patient, get_patient,
     get_diagnoses_for_patient, insert_diagnosis,
-    update_diagnosis, delete_diagnosis, delete_diagnoses_for_patient,
+    delete_diagnoses_for_patient,
 )
 
 
@@ -21,7 +21,7 @@ class PatientDialog(QDialog):
     def __init__(self, parent=None, patient_id: int | None = None):
         super().__init__(parent)
         self.patient_id = patient_id
-        self.image_paths: list[str] = []
+        self.attachments: list[ImageAttachment] = []
         self.diagnoses: list[Diagnosis] = []
         self.setWindowTitle("Editar Paciente" if patient_id else "Nuevo Paciente")
         self.setMinimumSize(850, 750)
@@ -77,7 +77,7 @@ class PatientDialog(QDialog):
         scroll_layout.addLayout(form)
 
         # Diagnoses section
-        diag_group = QGroupBox("Diagnósticos (CIE-10)")
+        diag_group = QGroupBox("Diagnósticos")
         diag_layout = QVBoxLayout(diag_group)
 
         btn_diag_layout = QHBoxLayout()
@@ -94,13 +94,13 @@ class PatientDialog(QDialog):
         diag_layout.addLayout(btn_diag_layout)
 
         self.diag_table = QTableWidget()
-        self.diag_table.setColumnCount(3)
-        self.diag_table.setHorizontalHeaderLabels(["Código CIE-10", "Diagnóstico", "Fecha"])
+        self.diag_table.setColumnCount(2)
+        self.diag_table.setHorizontalHeaderLabels(["Diagnóstico", "Fecha"])
         self.diag_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.diag_table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self.diag_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.diag_table.horizontalHeader().setStretchLastSection(True)
-        self.diag_table.setMinimumHeight(120)
+        self.diag_table.setMinimumHeight(100)
         diag_layout.addWidget(self.diag_table)
 
         scroll_layout.addWidget(diag_group)
@@ -130,7 +130,7 @@ class PatientDialog(QDialog):
 
         self.image_list = QListWidget()
         self.image_list.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
-        self.image_list.currentRowChanged.connect(self._on_preview_image)
+        self.image_list.currentRowChanged.connect(self._on_select_image)
         img_layout.addWidget(self.image_list)
 
         self.image_preview = QLabel("Vista previa")
@@ -138,6 +138,14 @@ class PatientDialog(QDialog):
         self.image_preview.setMinimumHeight(150)
         self.image_preview.setStyleSheet("background-color: #f0f0f0; border: 1px solid #ccc;")
         img_layout.addWidget(self.image_preview)
+
+        desc_img_layout = QHBoxLayout()
+        desc_img_layout.addWidget(QLabel("Descripción:"))
+        self.input_img_desc = QLineEdit()
+        self.input_img_desc.setPlaceholderText("Breve descripción de esta imagen...")
+        self.input_img_desc.textChanged.connect(self._on_desc_changed)
+        desc_img_layout.addWidget(self.input_img_desc)
+        img_layout.addLayout(desc_img_layout)
 
         scroll_layout.addWidget(img_group)
 
@@ -162,7 +170,7 @@ class PatientDialog(QDialog):
         self.input_address.setText(p.address)
         self.input_mrn.setText(p.medical_record_number)
         self.input_description.setPlainText(p.description)
-        self.image_paths = list(p.image_paths)
+        self.attachments = [ImageAttachment(path=a.path, description=a.description) for a in p.attachments]
         self.diagnoses = get_diagnoses_for_patient(patient_id)
         self._refresh_image_list()
         self._refresh_diag_table()
@@ -194,14 +202,8 @@ class PatientDialog(QDialog):
         self._refresh_diag_table()
 
     def _diagnosis_dialog(self, existing: Diagnosis | None = None) -> Diagnosis | None:
-        code, ok = QInputDialog.getText(
-            self, "Código CIE-10", "Código (ej: J15.9):",
-            text=existing.icd10_code if existing else ""
-        )
-        if not ok or not code.strip():
-            return None
         desc, ok = QInputDialog.getText(
-            self, "Descripción del diagnóstico", "Diagnóstico:",
+            self, "Diagnóstico", "Descripción del diagnóstico:",
             text=existing.description if existing else ""
         )
         if not ok or not desc.strip():
@@ -215,7 +217,6 @@ class PatientDialog(QDialog):
         return Diagnosis(
             id=existing.id if existing else None,
             patient_id=existing.patient_id if existing else (self.patient_id or 0),
-            icd10_code=code.strip(),
             description=desc.strip(),
             date=date.strip(),
         )
@@ -223,9 +224,8 @@ class PatientDialog(QDialog):
     def _refresh_diag_table(self):
         self.diag_table.setRowCount(len(self.diagnoses))
         for i, d in enumerate(self.diagnoses):
-            self.diag_table.setItem(i, 0, QTableWidgetItem(d.icd10_code))
-            self.diag_table.setItem(i, 1, QTableWidgetItem(d.description))
-            self.diag_table.setItem(i, 2, QTableWidgetItem(d.date))
+            self.diag_table.setItem(i, 0, QTableWidgetItem(d.description))
+            self.diag_table.setItem(i, 1, QTableWidgetItem(d.date))
         self.diag_table.resizeColumnsToContents()
 
     # --- Images ---
@@ -236,44 +236,66 @@ class PatientDialog(QDialog):
             "", "Imágenes (*.png *.jpg *.jpeg *.bmp *.gif)"
         )
         for f in files:
-            if f not in self.image_paths:
-                self.image_paths.append(f)
+            if not any(a.path == f for a in self.attachments):
+                self.attachments.append(ImageAttachment(path=f, description=""))
         self._refresh_image_list()
 
     def _on_remove_image(self):
         row = self.image_list.currentRow()
-        if row >= 0 and row < len(self.image_paths):
-            self.image_paths.pop(row)
+        if row >= 0 and row < len(self.attachments):
+            self.attachments.pop(row)
             self._refresh_image_list()
 
     def _refresh_image_list(self):
         self.image_list.blockSignals(True)
         self.image_list.clear()
-        for path in self.image_paths:
-            item = QListWidgetItem(os.path.basename(path))
-            item.setToolTip(path)
+        for att in self.attachments:
+            label = os.path.basename(att.path)
+            if att.description:
+                label += f" — {att.description}"
+            item = QListWidgetItem(label)
+            item.setToolTip(att.path)
             self.image_list.addItem(item)
         self.image_list.blockSignals(False)
-        if self.image_paths:
+        if self.attachments:
             self.image_list.setCurrentRow(0)
         else:
             self.image_preview.clear()
             self.image_preview.setText("Vista previa")
+            self.input_img_desc.setText("")
 
-    def _on_preview_image(self, row: int):
-        if row < 0 or row >= len(self.image_paths):
+    def _on_select_image(self, row: int):
+        self.input_img_desc.blockSignals(True)
+        if row < 0 or row >= len(self.attachments):
             self.image_preview.clear()
             self.image_preview.setText("Vista previa")
+            self.input_img_desc.setText("")
+            self.input_img_desc.blockSignals(False)
             return
-        pixmap = QPixmap(self.image_paths[row])
+
+        att = self.attachments[row]
+        self.input_img_desc.setText(att.description)
+
+        pixmap = QPixmap(att.path)
         if pixmap.isNull():
             self.image_preview.setText("(no se puede previsualizar)")
-            return
-        scaled = pixmap.scaled(
-            400, 200, Qt.AspectRatioMode.KeepAspectRatio,
-            Qt.TransformationMode.SmoothTransformation
-        )
-        self.image_preview.setPixmap(scaled)
+        else:
+            scaled = pixmap.scaled(
+                400, 200, Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation
+            )
+            self.image_preview.setPixmap(scaled)
+        self.input_img_desc.blockSignals(False)
+
+    def _on_desc_changed(self, text: str):
+        row = self.image_list.currentRow()
+        if row >= 0 and row < len(self.attachments):
+            self.attachments[row].description = text
+            # Update list item label
+            label = os.path.basename(self.attachments[row].path)
+            if text:
+                label += f" — {text}"
+            self.image_list.currentItem().setText(label)
 
     def _on_accept(self):
         first_name = self.input_first_name.text().strip()
@@ -293,7 +315,7 @@ class PatientDialog(QDialog):
             address=self.input_address.text().strip(),
             medical_record_number=self.input_mrn.text().strip(),
             description=self.input_description.toPlainText().strip(),
-            image_paths=self.image_paths,
+            attachments=self.attachments,
         )
 
         if self.patient_id:

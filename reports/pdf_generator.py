@@ -155,21 +155,20 @@ def generate_patient_report(patient_id: int, output_path: str):
 
     # ===== DIAGNOSES =====
     if diagnoses:
-        elements.append(Paragraph("Diagnósticos (CIE-10)", styles["SectionTitle"]))
+        elements.append(Paragraph("Diagnósticos", styles["SectionTitle"]))
 
-        diag_data = [["Código", "Diagnóstico", "Fecha"]]
+        diag_data = [["Diagnóstico", "Fecha"]]
         for d in diagnoses:
-            diag_data.append([d.icd10_code, d.description, d.date or "—"])
+            diag_data.append([d.description, d.date or "—"])
 
-        diag_table = Table(diag_data, colWidths=[3 * cm, 10 * cm, 3 * cm])
+        diag_table = Table(diag_data, colWidths=[12 * cm, 4 * cm])
         diag_table.setStyle(TableStyle([
             ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
             ("FONTSIZE", (0, 0), (-1, -1), 9),
             ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
             ("BACKGROUND", (0, 0), (-1, 0), HexColor("#2980B9")),
             ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-            ("ALIGN", (0, 0), (0, -1), "CENTER"),
-            ("ALIGN", (2, 0), (2, -1), "CENTER"),
+            ("ALIGN", (1, 0), (1, -1), "CENTER"),
             ("ROWBACKGROUNDS", (0, 1), (-1, -1), [HexColor("#F8F9FA"), colors.white]),
             ("GRID", (0, 0), (-1, -1), 0.5, HexColor("#D5D8DC")),
             ("TOPPADDING", (0, 0), (-1, -1), 3 * mm),
@@ -188,18 +187,25 @@ def generate_patient_report(patient_id: int, output_path: str):
         ))
 
     # ===== IMAGES =====
-    if patient.image_paths:
+    if patient.attachments:
         elements.append(Spacer(1, 2 * mm))
         elements.append(Paragraph("Imágenes Adjuntas", styles["SectionTitle"]))
-        for img_path in patient.image_paths:
-            if os.path.isfile(img_path):
+        for att in patient.attachments:
+            if os.path.isfile(att.path):
                 try:
-                    img = RLImage(img_path, width=14 * cm, height=9 * cm, kind="proportional")
+                    img = RLImage(att.path, width=14 * cm, height=9 * cm, kind="proportional")
                     elements.append(Spacer(1, 2 * mm))
                     elements.append(img)
+                    if att.description:
+                        elements.append(Paragraph(
+                            f"<i>{att.description}</i>",
+                            ParagraphStyle("ImgDesc", parent=styles["Normal"],
+                                           fontSize=9, textColor=HexColor("#7F8C8D"),
+                                           alignment=TA_CENTER, spaceAfter=3 * mm)
+                        ))
                 except Exception:
                     elements.append(Paragraph(
-                        f"(no se pudo incluir: {os.path.basename(img_path)})",
+                        f"(no se pudo incluir: {os.path.basename(att.path)})",
                         ParagraphStyle("ImgErr", parent=styles["Normal"],
                                        fontSize=9, textColor=HexColor("#E74C3C"))
                     ))

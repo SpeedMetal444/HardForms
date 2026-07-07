@@ -1,10 +1,12 @@
 import sqlite3
 import os
-from models.patient import Patient
+from models.patient import Patient, ImageAttachment
 from models.diagnosis import Diagnosis
 from typing import List
 
 DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "patients.db")
+
+IMG_SEP = "|||"
 
 
 def get_connection() -> sqlite3.Connection:
@@ -30,7 +32,7 @@ def init_db():
             address TEXT,
             medical_record_number TEXT,
             description TEXT,
-            image_paths TEXT,
+            attachments TEXT,
             created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
             updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
         )
@@ -39,12 +41,20 @@ def init_db():
         CREATE TABLE IF NOT EXISTS diagnoses (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             patient_id INTEGER NOT NULL,
-            icd10_code TEXT NOT NULL,
             description TEXT NOT NULL,
             date TEXT,
             FOREIGN KEY (patient_id) REFERENCES patients(id) ON DELETE CASCADE
         )
     """)
+    # Migration: old column name
+    try:
+        conn.execute("ALTER TABLE patients RENAME COLUMN image_paths TO attachments")
+    except Exception:
+        pass
+    try:
+        conn.execute("ALTER TABLE diagnoses DROP COLUMN icd10_code")
+    except Exception:
+        pass
     conn.commit()
     conn.close()
 
@@ -53,11 +63,11 @@ def insert_patient(p: Patient) -> int:
     conn = get_connection()
     cur = conn.execute("""
         INSERT INTO patients (first_name, last_name, dni, birth_date, phone, email,
-                              address, medical_record_number, description, image_paths)
+                              address, medical_record_number, description, attachments)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (p.first_name, p.last_name, p.dni, p.birth_date, p.phone, p.email,
           p.address, p.medical_record_number, p.description,
-          "\n".join(p.image_paths)))
+          _attachments_to_str(p.attachments)))
     conn.commit()
     conn.close()
     return cur.lastrowid
@@ -68,11 +78,11 @@ def update_patient(p: Patient):
     conn.execute("""
         UPDATE patients SET first_name=?, last_name=?, dni=?, birth_date=?, phone=?,
                             email=?, address=?, medical_record_number=?, description=?,
-                            image_paths=?, updated_at=datetime('now','localtime')
+                            attachments=?, updated_at=datetime('now','localtime')
         WHERE id=?
     """, (p.first_name, p.last_name, p.dni, p.birth_date, p.phone, p.email,
           p.address, p.medical_record_number, p.description,
-          "\n".join(p.image_paths), p.id))
+          _attachments_to_str(p.attachments), p.id))
     conn.commit()
     conn.close()
 
@@ -112,6 +122,26 @@ def search_patients(query: str) -> List[Patient]:
     return [_row_to_patient(r) for r in rows]
 
 
+def _attachments_to_str(attachments: List[ImageAttachment]) -> str:
+    return "\n".join(
+        f"{a.path}{IMG_SEP}{a.description}" for a in attachments
+    )
+
+
+def _str_to_attachments(raw: str) -> List[ImageAttachment]:
+    result = []
+    for line in (raw or "").split("\n"):
+        line = line.strip()
+        if not line:
+            continue
+        if IMG_SEP in line:
+            path, desc = line.split(IMG_SEP, 1)
+        else:
+            path, desc = line, ""  # legacy format
+        result.append(ImageAttachment(path=path, description=desc))
+    return result
+
+
 def _row_to_patient(row: sqlite3.Row) -> Patient:
     return Patient(
         id=row["id"],
@@ -124,7 +154,7 @@ def _row_to_patient(row: sqlite3.Row) -> Patient:
         address=row["address"],
         medical_record_number=row["medical_record_number"],
         description=row["description"],
-        image_paths=[p for p in (row["image_paths"] or "").split("\n") if p],
+        attachments=_str_to_attachments(row["attachments"]),
         created_at=row["created_at"],
         updated_at=row["updated_at"],
     )
@@ -135,9 +165,9 @@ def _row_to_patient(row: sqlite3.Row) -> Patient:
 def insert_diagnosis(d: Diagnosis) -> int:
     conn = get_connection()
     cur = conn.execute("""
-        INSERT INTO diagnoses (patient_id, icd10_code, description, date)
-        VALUES (?, ?, ?, ?)
-    """, (d.patient_id, d.icd10_code, d.description, d.date))
+        INSERT INTO diagnoses (patient_id, description, date)
+        VALUES (?, ?, ?)
+    """, (d.patient_id, d.description, d.date))
     conn.commit()
     conn.close()
     return cur.lastrowid
@@ -146,9 +176,9 @@ def insert_diagnosis(d: Diagnosis) -> int:
 def update_diagnosis(d: Diagnosis):
     conn = get_connection()
     conn.execute("""
-        UPDATE diagnoses SET icd10_code=?, description=?, date=?
+        UPDATE diagnoses SET description=?, date=?
         WHERE id=?
-    """, (d.icd10_code, d.description, d.date, d.id))
+    """, (d.description, d.date, d.id))
     conn.commit()
     conn.close()
 
@@ -181,7 +211,6 @@ def _row_to_diagnosis(row: sqlite3.Row) -> Diagnosis:
     return Diagnosis(
         id=row["id"],
         patient_id=row["patient_id"],
-        icd10_code=row["icd10_code"],
         description=row["description"],
         date=row["date"],
     )

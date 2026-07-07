@@ -143,9 +143,10 @@ class MainWindow(QMainWindow):
             return
 
         diagnoses = get_diagnoses_for_patient(patient_id)
-        diag_code = diagnoses[0].icd10_code if diagnoses else "sin-dx"
+        diag_name = diagnoses[0].description if diagnoses else "sin-diagnostico"
         safe_name = re.sub(r'[\\/*?:"<>|]', "", f"{patient.last_name}_{patient.first_name}")
-        suggested = f"{safe_name}_{diag_code}.pdf"
+        safe_diag = re.sub(r'[\\/*?:"<>|]', "", diag_name)[:40]
+        suggested = f"{safe_name}_{safe_diag}.pdf"
 
         file_path, _ = QFileDialog.getSaveFileName(
             self, "Guardar informe PDF", suggested, "PDF (*.pdf)"

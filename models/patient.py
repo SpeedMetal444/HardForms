@@ -1,6 +1,11 @@
 from dataclasses import dataclass, field
 from typing import List
-from datetime import datetime
+
+
+@dataclass
+class ImageAttachment:
+    path: str = ""
+    description: str = ""
 
 
 @dataclass
@@ -15,7 +20,7 @@ class Patient:
     address: str = ""
     medical_record_number: str = ""
     description: str = ""
-    image_paths: List[str] = field(default_factory=list)
+    attachments: List[ImageAttachment] = field(default_factory=list)
     created_at: str = ""
     updated_at: str = ""
 
