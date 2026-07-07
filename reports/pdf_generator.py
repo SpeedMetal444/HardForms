@@ -9,8 +9,7 @@ from reportlab.platypus import (
 )
 from reportlab.lib import colors
 from reportlab.lib.colors import HexColor
-from reportlab.platypus.doctemplate import PageTemplate, BaseDocTemplate, Frame
-from reportlab.platypus.tableofcontents import TableOfContents
+
 from database.db import get_patient, get_diagnoses_for_patient
 from config.institution import INSTITUTION
 
@@ -25,7 +24,7 @@ def _header_footer(canvas, doc):
     canvas.setFont("Helvetica", 7)
     canvas.setFillColor(HexColor("#95A5A6"))
     canvas.drawCentredString(A4[0] / 2, 1.2 * cm, INSTITUTION["name"])
-    canvas.drawRightString(A4[0] - 2.5 * cm, 1.2 * cm, f"Pág. {doc.page}")
+    canvas.drawRightString(A4[0] - 2.5 * cm, 1.2 * cm, f"Pág. {canvas.getPageNumber()}")
     canvas.restoreState()
 
 

@@ -1,4 +1,5 @@
 import os
+import re
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QPushButton, QLineEdit, QTableWidget, QTableWidgetItem,
@@ -7,7 +8,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QAction, QIcon, QPixmap
-from database.db import get_all_patients, search_patients, delete_patient
+from database.db import get_all_patients, search_patients, delete_patient, get_patient, get_diagnoses_for_patient
 from ui.patient_dialog import PatientDialog
 from reports.pdf_generator import generate_patient_report
 from config.institution import INSTITUTION
@@ -136,8 +137,18 @@ class MainWindow(QMainWindow):
         patient_id = self._get_selected_patient_id()
         if patient_id is None:
             return
+
+        patient = get_patient(patient_id)
+        if patient is None:
+            return
+
+        diagnoses = get_diagnoses_for_patient(patient_id)
+        diag_code = diagnoses[0].icd10_code if diagnoses else "sin-dx"
+        safe_name = re.sub(r'[\\/*?:"<>|]', "", f"{patient.last_name}_{patient.first_name}")
+        suggested = f"{safe_name}_{diag_code}.pdf"
+
         file_path, _ = QFileDialog.getSaveFileName(
-            self, "Guardar informe PDF", "", "PDF (*.pdf)"
+            self, "Guardar informe PDF", suggested, "PDF (*.pdf)"
         )
         if not file_path:
             return
