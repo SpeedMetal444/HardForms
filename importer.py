@@ -95,7 +95,7 @@ def bulk_insert(conn, patients_with_diagnoses):
     conn.commit()
 
 
-def import_estudios(csv_path, conn, progress=None):
+def import_estudios(csv_path, conn, progress=None, hc_start=1):
     count = 0
     batch = []
     with open(csv_path, encoding="cp1252") as f:
@@ -123,6 +123,7 @@ def import_estudios(csv_path, conn, progress=None):
                 last_name=last_name or paciente[:50],
                 dni="",
                 birth_date=birth_date,
+                medical_record_number=f"HC-{hc_start + count:05d}",
                 insurance=(row.get("Cobertura") or "").strip(),
                 insurance_number=(row.get("AfiliadoNro") or "").strip(),
                 doctor=(row.get("Operador") or "").strip(),
@@ -171,7 +172,7 @@ def import_estudios(csv_path, conn, progress=None):
     return count
 
 
-def import_ecografias(csv_path, conn, progress=None):
+def import_ecografias(csv_path, conn, progress=None, hc_start=1):
     count = 0
     batch = []
     with open(csv_path, encoding="cp1252") as f:
@@ -196,6 +197,7 @@ def import_ecografias(csv_path, conn, progress=None):
                 last_name=last_name or paciente[:50],
                 dni="",
                 birth_date=birth_date,
+                medical_record_number=f"HC-{hc_start + count:05d}",
                 insurance=(row.get("Cobertura") or "").strip(),
                 insurance_number=(row.get("AfiliadoNro") or "").strip(),
                 description=description,
@@ -268,10 +270,11 @@ def run_import(mdb_path=None, progress=None):
 
         if progress:
             progress("Importando Estudios...")
-        _prog = progress
-        n_est = import_estudios(csv_est, conn, progress=(
-            (lambda c: _prog(f"Importando Estudios... {c} pacientes"))
-        )) if progress else import_estudios(csv_est, conn)
+            n_est = import_estudios(csv_est, conn,
+                progress=lambda c: progress(f"Importando Estudios... {c} pacientes"),
+                hc_start=1)
+        else:
+            n_est = import_estudios(csv_est, conn, hc_start=1)
 
         # Exportar Ecografias
         csv_eco = os.path.join(tmp, "Ecografias.csv")
@@ -281,10 +284,11 @@ def run_import(mdb_path=None, progress=None):
 
         if progress:
             progress("Importando Ecografias...")
-        _prog = progress
-        n_eco = import_ecografias(csv_eco, conn, progress=(
-            (lambda c: _prog(f"Importando Ecografias... {c} pacientes"))
-        )) if progress else import_ecografias(csv_eco, conn)
+            n_eco = import_ecografias(csv_eco, conn,
+                progress=lambda c: progress(f"Importando Ecografias... {c} pacientes"),
+                hc_start=n_est + 1)
+        else:
+            n_eco = import_ecografias(csv_eco, conn, hc_start=n_est + 1)
 
         return n_est, n_eco
 
