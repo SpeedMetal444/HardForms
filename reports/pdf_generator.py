@@ -6,7 +6,7 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT, TA_JUSTIFY
 from reportlab.platypus import (
     SimpleDocTemplate, Paragraph, Spacer, Image as RLImage,
-    Table, TableStyle
+    Table, TableStyle, PageBreak
 )
 from reportlab.lib import colors
 from reportlab.lib.colors import HexColor
@@ -180,6 +180,8 @@ def generate_patient_report(patient_id: int, output_path: str):
                    ("RIGHTPADDING", (1, 0), (1, 0), 0)]))
     else:
         elements.append(Paragraph(INSTITUTION["name"], styles["InstName"]))
+        if details:
+            elements.append(Paragraph(details, styles["InstInfo"]))
 
     elements.append(Spacer(1, 3 * mm))
     elements.append(Table([[""]], colWidths=[16 * cm],
@@ -231,6 +233,7 @@ def generate_patient_report(patient_id: int, output_path: str):
 
     # ===== INFORME MÉDICO =====
     if patient.description:
+        elements.append(PageBreak())
         elements.append(_section("Informe Médico",
             Paragraph(patient.description.replace("\n", "<br/>"), styles["DescText"]), styles))
         elements.append(Spacer(1, 4 * mm))
@@ -264,10 +267,12 @@ def generate_patient_report(patient_id: int, output_path: str):
             img_table = Table(rows, colWidths=[7.5 * cm, 7.5 * cm])
             img_table.setStyle(TableStyle([
                 ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                ("LEFTPADDING", (0, 0), (-1, -1), 1 * mm),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 1 * mm),
-                ("TOPPADDING", (0, 0), (-1, -1), 3 * mm),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 3 * mm),
+                ("LEFTPADDING", (0, 0), (-1, -1), 2 * mm),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 2 * mm),
+                ("TOPPADDING", (0, 0), (-1, -1), 2 * mm),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 2 * mm),
+                ("BOX", (0, 0), (-1, -1), 0.75, HexColor("#BDC3C7")),
+                ("BACKGROUND", (0, 0), (-1, -1), HexColor("#FFFFFF")),
             ]))
             elements.append(_section("Imágenes Adjuntas", img_table, styles))
 

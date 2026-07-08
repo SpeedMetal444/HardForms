@@ -6,6 +6,7 @@
   "web": "www.micentro.com",
   "mp_number": "MP 12345",
   "doctor_name": "Juan Pérez",
-  "logo_path": "Z:/Pantera/Imagenes/default_logo_large.png",
+  "logo_path": "",
+  "watermark_path": "",
   "footer_text": "Documento generado por HardForms © 2026"
 }
