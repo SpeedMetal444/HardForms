@@ -32,7 +32,7 @@ class MainWindow(QMainWindow):
         self.setMenuBar(menubar)
 
         menu_archivo = menubar.addMenu("Archivo")
-        act_new = QAction("Nuevo Paciente", self)
+        act_new = QAction("Nuevo paciente", self)
         act_new.triggered.connect(self._on_new_patient)
         menu_archivo.addAction(act_new)
         act_edit = QAction("Editar", self)
@@ -43,18 +43,22 @@ class MainWindow(QMainWindow):
         menu_archivo.addAction(act_delete)
         menu_archivo.addSeparator()
 
-        menu_import = menu_archivo.addMenu("Importar")
-        act_import_mdb_csv = QAction("CSV / MDB...", self)
-        act_import_mdb_csv.triggered.connect(self._on_import)
-        menu_import.addAction(act_import_mdb_csv)
+        act_import = QAction("Importar datos", self)
+        act_import.triggered.connect(self._on_import)
+        menu_archivo.addAction(act_import)
 
-        menu_export = menu_archivo.addMenu("Exportar")
-        act_export_csv = QAction("CSV...", self)
+        menu_export = menu_archivo.addMenu("Exportar datos")
+        act_export_csv = QAction("Archivo .csv", self)
         act_export_csv.triggered.connect(self._on_export_csv)
         menu_export.addAction(act_export_csv)
-        act_export_db = QAction("DB...", self)
+        act_export_db = QAction("Archivo .db", self)
         act_export_db.triggered.connect(self._on_export_db)
         menu_export.addAction(act_export_db)
+
+        menu_archivo.addSeparator()
+        act_exit = QAction("Salir", self)
+        act_exit.triggered.connect(self.close)
+        menu_archivo.addAction(act_exit)
 
         menu_herramientas = menubar.addMenu("Herramientas")
         act_pdf = QAction("Abrir como PDF", self)
