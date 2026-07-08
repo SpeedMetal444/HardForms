@@ -16,7 +16,7 @@ from models.patient import Patient
 from ui.patient_dialog import PatientDialog
 from ui.patient_view import PatientView
 from reports.pdf_generator import generate_full_report, generate_summary_report
-from config.institution import get_institution
+from config.institution import get_institution, is_default_config
 from importer import run_import
 from ui.widgets import DateItem
 
@@ -31,6 +31,10 @@ class MainWindow(QMainWindow):
         self.setWindowIcon(QIcon(logo_path))
         self._setup_ui()
         self._load_patients()
+        if is_default_config():
+            from ui.setup_dialog import InstitutionSetupDialog
+            InstitutionSetupDialog(self).exec()
+            self.setWindowTitle(f"HardForms - {get_institution()['name']}")
 
     def _setup_ui(self):
         # Menu bar

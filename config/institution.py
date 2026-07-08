@@ -66,6 +66,12 @@ def get_institution():
     return cfg
 
 
+def is_default_config():
+    cfg = _load_config()
+    keys = list(DEFAULT_INSTITUTION.keys())
+    return all(cfg.get(k) == DEFAULT_INSTITUTION[k] for k in keys)
+
+
 def save_institution(cfg):
     base = _resource_dir()
     for key in ("logo_path", "watermark_path", "default_logo"):
