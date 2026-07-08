@@ -21,24 +21,31 @@ class InstitutionSetupDialog(QDialog):
 
         form = QFormLayout()
         self.input_name = QLineEdit(self._cfg.get("name", ""))
+        self.input_name.setPlaceholderText("Ej: Centro Médico Buenos Aires")
         form.addRow("Nombre de la institución:", self.input_name)
 
         self.input_address = QLineEdit(self._cfg.get("address", ""))
+        self.input_address.setPlaceholderText("Ej: Av. Corrientes 1234, CABA")
         form.addRow("Dirección:", self.input_address)
 
         self.input_phone = QLineEdit(self._cfg.get("phone", ""))
+        self.input_phone.setPlaceholderText("Ej: +54 11 1234-5678")
         form.addRow("Teléfono:", self.input_phone)
 
         self.input_email = QLineEdit(self._cfg.get("email", ""))
+        self.input_email.setPlaceholderText("Ej: contacto@micentro.com")
         form.addRow("Email:", self.input_email)
 
         self.input_web = QLineEdit(self._cfg.get("web", ""))
+        self.input_web.setPlaceholderText("Ej: www.micentro.com")
         form.addRow("Sitio web:", self.input_web)
 
         self.input_mp = QLineEdit(self._cfg.get("mp_number", ""))
+        self.input_mp.setPlaceholderText("Ej: MP 12345")
         form.addRow("Nro. Matrícula (MP):", self.input_mp)
 
         self.input_doctor = QLineEdit(self._cfg.get("doctor_name", ""))
+        self.input_doctor.setPlaceholderText("Ej: Dr. Juan Pérez")
         form.addRow("Médico / Director:", self.input_doctor)
 
         # Logo
