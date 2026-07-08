@@ -481,13 +481,15 @@ class MainWindow(QMainWindow):
         elements.append(Spacer(1, 0.3*cm))
 
         elements.append(Paragraph("Menú de Herramientas", h1))
-        elements.append(Paragraph(
-            "• <b>Abrir como PDF</b>: genera el informe del paciente seleccionado.<br>"
-            "• <b>Duplicar Paciente</b>: crea una copia exacta con nuevo número de HC.<br>"
-            "• <b>Crear copia de seguridad</b>: exporta DB + imágenes a .zip.<br>"
-            "• <b>Restaurar copia de seguridad</b>: importa desde .zip.<br>"
-            "• <b>Borrar Base de Datos</b>: elimina todos los registros "
-            "(requiere escribir BORRAR en el campo de búsqueda).", body))
+        items = [
+            "<b>Abrir como PDF</b>: genera el informe del paciente seleccionado.",
+            "<b>Duplicar Paciente</b>: crea una copia exacta con nuevo número de HC.",
+            "<b>Crear copia de seguridad</b>: exporta DB + imágenes a .zip.",
+            "<b>Restaurar copia de seguridad</b>: importa desde .zip.",
+            "<b>Borrar Base de Datos</b>: elimina todos los registros (requiere escribir BORRAR en el campo de búsqueda).",
+        ]
+        for item in items:
+            elements.append(Paragraph(f"· {item}", body))
 
         doc.build(elements)
         QDesktopServices.openUrl(QUrl.fromLocalFile(tmp.name))
