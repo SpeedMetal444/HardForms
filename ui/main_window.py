@@ -79,10 +79,17 @@ class MainWindow(QMainWindow):
         act_clear.triggered.connect(self._on_clear_database)
         menu_herramientas.addAction(act_clear)
 
-        menu_acerca = menubar.addMenu("Acerca de")
+        menu_ayuda = menubar.addMenu("Ayuda")
+        act_manual = QAction("Manual de uso", self)
+        act_manual.triggered.connect(self._on_open_manual)
+        menu_ayuda.addAction(act_manual)
+        act_report = QAction("Reportar un problema", self)
+        act_report.triggered.connect(self._on_report_issue)
+        menu_ayuda.addAction(act_report)
+        menu_ayuda.addSeparator()
         act_about = QAction("Acerca de HardForms", self)
         act_about.triggered.connect(self._on_about)
-        menu_acerca.addAction(act_about)
+        menu_ayuda.addAction(act_about)
 
         # Central widget
         central = QWidget()
@@ -366,6 +373,127 @@ class MainWindow(QMainWindow):
             )
         except Exception as e:
             QMessageBox.critical(self, "Error", f"No se pudo restaurar:\n{e}")
+
+    def _on_open_manual(self):
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib.units import cm
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, ListFlowable, ListItem
+
+        tmp = tempfile.NamedTemporaryFile(suffix=".pdf", delete=False)
+        tmp.close()
+        doc = SimpleDocTemplate(tmp.name, pagesize=A4,
+                                leftMargin=2*cm, rightMargin=2*cm,
+                                topMargin=2*cm, bottomMargin=2*cm)
+        styles = getSampleStyleSheet()
+        title_style = ParagraphStyle("Title2", parent=styles["Title"], fontSize=18, spaceAfter=12)
+        h1 = ParagraphStyle("H1", parent=styles["Heading1"], fontSize=14, spaceBefore=16, spaceAfter=6)
+        h2 = ParagraphStyle("H2", parent=styles["Heading2"], fontSize=12, spaceBefore=12, spaceAfter=4)
+        body = ParagraphStyle("Body", parent=styles["Normal"], fontSize=10, spaceAfter=4)
+
+        elements = []
+        elements.append(Paragraph("HardForms — Manual de uso", title_style))
+        elements.append(Paragraph("Versión 1.0", body))
+        elements.append(Spacer(1, 0.5*cm))
+
+        elements.append(Paragraph("Introducción", h1))
+        elements.append(Paragraph(
+            "HardForms es un sistema de gestión de pacientes e informes "
+            "médicos diseñado para consultorios y centros de salud. Permite "
+            "registrar, organizar y administrar información clínica de forma "
+            "rápida y segura.", body))
+        elements.append(Spacer(1, 0.3*cm))
+
+        elements.append(Paragraph("Gestión de pacientes", h1))
+        elements.append(Paragraph(
+            "Al iniciar el programa se muestra la lista de pacientes. "
+            "Usá el campo de búsqueda para filtrar por nombre, apellido o DNI. "
+            "Hacé doble clic en un paciente para ver su ficha completa.", body))
+        elements.append(Paragraph(
+            "• <b>Nuevo paciente</b>: Archivo → Nuevo paciente o botón + flotante.", body))
+        elements.append(Paragraph(
+            "• <b>Editar</b>: Archivo → Editar o desde la ficha del paciente.", body))
+        elements.append(Paragraph(
+            "• <b>Eliminar</b>: Archivo → Eliminar.", body))
+        elements.append(Paragraph(
+            "• <b>Duplicar</b>: Herramientas → Duplicar Paciente (crea copia con nuevo HC).", body))
+        elements.append(Spacer(1, 0.3*cm))
+
+        elements.append(Paragraph("Campos del paciente", h1))
+        elements.append(Paragraph(
+            "Cada paciente incluye: nombre, apellido, DNI, fecha de nacimiento, "
+            "teléfono, email, domicilio, número de historia clínica (HC-XXXXX, "
+            "auto-incremental), afiliado, número de afiliado, médico operador, "
+            "tipo de anestesia (Local/General), droga, anestesiólogo, "
+            "escala de Boston, postoperatorio e informe.", body))
+        elements.append(Spacer(1, 0.3*cm))
+
+        elements.append(Paragraph("Diagnósticos", h1))
+        elements.append(Paragraph(
+            "Se pueden agregar múltiples diagnósticos por paciente, cada uno "
+            "con descripción y fecha. La fecha se pre-completa con el día de "
+            "hoy. Se muestran en una tabla dentro del formulario del paciente.", body))
+        elements.append(Spacer(1, 0.3*cm))
+
+        elements.append(Paragraph("Imágenes", h1))
+        elements.append(Paragraph(
+            "Cada paciente puede tener imágenes asociadas. Se agregan desde "
+            "el botón \"Agregar imagen\" en el formulario. Las miniaturas "
+            "se muestran en una vista horizontal. Cada imagen puede tener "
+            "una descripción opcional.", body))
+        elements.append(Spacer(1, 0.3*cm))
+
+        elements.append(Paragraph("Generación de PDF", h1))
+        elements.append(Paragraph(
+            "Seleccioná un paciente y usá Herramientas → Abrir como PDF "
+            "para generar un informe en PDF con todos los datos del paciente, "
+            "diagnósticos (tabla con encabezado azul y filas alternadas) "
+            "e imágenes con sus descripciones. El PDF incluye el logo y "
+            "datos de la institución en el encabezado y pie de página.", body))
+        elements.append(Spacer(1, 0.3*cm))
+
+        elements.append(Paragraph("Importación de datos", h1))
+        elements.append(Paragraph(
+            "Usá Archivo → Importar datos para cargar pacientes desde "
+            "archivos Microsoft Access (.mdb) o CSV. "
+            "Los archivos .mdb se exportan a CSV mediante VBScript de 32 bits "
+            "y luego se importan en lotes de 500 registros. "
+            "Al importar .mdb los datos actuales se reemplazan. "
+            "Al importar .csv los pacientes se agregan con nuevo HC.", body))
+        elements.append(Spacer(1, 0.3*cm))
+
+        elements.append(Paragraph("Exportación de datos", h1))
+        elements.append(Paragraph(
+            "Usá Archivo → Exportar datos para guardar la información en "
+            "formato CSV (todas las columnas, incluyendo rutas de imágenes) "
+            "o como archivo .db (copia de la base de datos SQLite).", body))
+        elements.append(Spacer(1, 0.3*cm))
+
+        elements.append(Paragraph("Copias de seguridad", h1))
+        elements.append(Paragraph(
+            "Usá Herramientas → Crear copia de seguridad para generar un "
+            "archivo .zip que contiene la base de datos completa y todas las "
+            "imágenes referenciadas, preservando la estructura de directorios. "
+            "Usá Herramientas → Restaurar copia de seguridad para recuperar "
+            "los datos desde un archivo .zip. "
+            "La restauración reemplaza la base de datos actual y extrae las "
+            "imágenes a sus rutas originales.", body))
+        elements.append(Spacer(1, 0.3*cm))
+
+        elements.append(Paragraph("Menú de Herramientas", h1))
+        elements.append(Paragraph(
+            "• <b>Abrir como PDF</b>: genera el informe del paciente seleccionado.<br>"
+            "• <b>Duplicar Paciente</b>: crea una copia exacta con nuevo número de HC.<br>"
+            "• <b>Crear copia de seguridad</b>: exporta DB + imágenes a .zip.<br>"
+            "• <b>Restaurar copia de seguridad</b>: importa desde .zip.<br>"
+            "• <b>Borrar Base de Datos</b>: elimina todos los registros "
+            "(requiere escribir BORRAR en el campo de búsqueda).", body))
+
+        doc.build(elements)
+        QDesktopServices.openUrl(QUrl.fromLocalFile(tmp.name))
+
+    def _on_report_issue(self):
+        QDesktopServices.openUrl(QUrl("mailto:abelgodoy.1802@gmail.com"))
 
     def _on_about(self):
         QMessageBox.about(
