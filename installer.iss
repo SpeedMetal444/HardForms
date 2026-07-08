@@ -51,113 +51,6 @@ var
   lblLogo: TLabel;
   logoFile: string;
 
-procedure InitializeWizard;
-var
-  OuterBox: TScrollBox;
-  lbl: TLabel;
-begin
-  CustomPage := CreateCustomPage(wpSelectTasks, 'Configurar institución',
-    'Ingresá los datos de la institución para el encabezado de los informes PDF.');
-
-  OuterBox := TScrollBox.Create(CustomPage);
-  OuterBox.Parent := CustomPage.Surface;
-  OuterBox.Align := alClient;
-  OuterBox.VertScrollBar.Visible := True;
-
-  lbl := TLabel.Create(OuterBox);
-  lbl.Parent := OuterBox;
-  lbl.Caption := 'Nombre de la institución:';
-  lbl.Top := 8;
-  lbl.Left := 8;
-  edtName := TEdit.Create(OuterBox);
-  edtName.Parent := OuterBox;
-  edtName.Top := lbl.Top + lbl.Height + 2;
-  edtName.Left := 8;
-  edtName.Width := 400;
-  edtName.Text := 'Mi Centro Médico';
-
-  lbl := TLabel.Create(OuterBox);
-  lbl.Parent := OuterBox;
-  lbl.Caption := 'Dirección:';
-  lbl.Top := edtName.Top + edtName.Height + 8;
-  lbl.Left := 8;
-  edtAddress := TEdit.Create(OuterBox);
-  edtAddress.Parent := OuterBox;
-  edtAddress.Top := lbl.Top + lbl.Height + 2;
-  edtAddress.Left := 8;
-  edtAddress.Width := 400;
-  edtAddress.Text := 'Dirección del centro';
-
-  lbl := TLabel.Create(OuterBox);
-  lbl.Parent := OuterBox;
-  lbl.Caption := 'Teléfono:';
-  lbl.Top := edtAddress.Top + edtAddress.Height + 8;
-  lbl.Left := 8;
-  edtPhone := TEdit.Create(OuterBox);
-  edtPhone.Parent := OuterBox;
-  edtPhone.Top := lbl.Top + lbl.Height + 2;
-  edtPhone.Left := 8;
-  edtPhone.Width := 400;
-  edtPhone.Text := '+54 11 1234-5678';
-
-  lbl := TLabel.Create(OuterBox);
-  lbl.Parent := OuterBox;
-  lbl.Caption := 'Email:';
-  lbl.Top := edtPhone.Top + edtPhone.Height + 8;
-  lbl.Left := 8;
-  edtEmail := TEdit.Create(OuterBox);
-  edtEmail.Parent := OuterBox;
-  edtEmail.Top := lbl.Top + lbl.Height + 2;
-  edtEmail.Left := 8;
-  edtEmail.Width := 400;
-  edtEmail.Text := 'contacto@micentro.com';
-
-  lbl := TLabel.Create(OuterBox);
-  lbl.Parent := OuterBox;
-  lbl.Caption := 'Sitio web:';
-  lbl.Top := edtEmail.Top + edtEmail.Height + 8;
-  lbl.Left := 8;
-  edtWeb := TEdit.Create(OuterBox);
-  edtWeb.Parent := OuterBox;
-  edtWeb.Top := lbl.Top + lbl.Height + 2;
-  edtWeb.Left := 8;
-  edtWeb.Width := 400;
-  edtWeb.Text := 'www.micentro.com';
-
-  lbl := TLabel.Create(OuterBox);
-  lbl.Parent := OuterBox;
-  lbl.Caption := 'Matrícula / MP:';
-  lbl.Top := edtWeb.Top + edtWeb.Height + 8;
-  lbl.Left := 8;
-  edtMP := TEdit.Create(OuterBox);
-  edtMP.Parent := OuterBox;
-  edtMP.Top := lbl.Top + lbl.Height + 2;
-  edtMP.Left := 8;
-  edtMP.Width := 400;
-  edtMP.Text := 'MP 12345';
-
-  lbl := TLabel.Create(OuterBox);
-  lbl.Parent := OuterBox;
-  lbl.Caption := 'Nombre del médico / director:';
-  lbl.Top := edtMP.Top + edtMP.Height + 8;
-  lbl.Left := 8;
-  edtDoctor := TEdit.Create(OuterBox);
-  edtDoctor.Parent := OuterBox;
-  edtDoctor.Top := lbl.Top + lbl.Height + 2;
-  edtDoctor.Left := 8;
-  edtDoctor.Width := 400;
-  edtDoctor.Text := 'Juan Pérez';
-
-  lbl := TLabel.Create(OuterBox);
-  lbl.Parent := OuterBox;
-  lbl.Caption := 'Logo institucional (PNG recomendado):';
-  lbl.Top := edtDoctor.Top + edtDoctor.Height + 8;
-  lbl.Left := 8;
-  lblLogo := lbl;
-
-  logoFile := '';
-end;
-
 procedure BrowseLogo(Sender: TObject);
 var
   fd: TOpenDialog;
@@ -171,6 +64,126 @@ begin
     lblLogo.Caption := 'Logo: ' + ExtractFileName(logoFile);
   end;
   fd.Free;
+end;
+
+procedure InitializeWizard;
+var
+  lbl: TLabel;
+  y: Integer;
+  btn: TButton;
+begin
+  CustomPage := CreateCustomPage(wpSelectTasks, 'Configurar institución',
+    'Ingresá los datos de la institución para el encabezado de los informes PDF.');
+
+  y := 8;
+
+  lbl := TLabel.Create(CustomPage);
+  lbl.Parent := CustomPage.Surface;
+  lbl.Caption := 'Nombre de la institución:';
+  lbl.Top := y;
+  lbl.Left := 8;
+  edtName := TEdit.Create(CustomPage);
+  edtName.Parent := CustomPage.Surface;
+  edtName.Top := y + 16;
+  edtName.Left := 8;
+  edtName.Width := 400;
+  edtName.Text := 'Mi Centro Médico';
+
+  y := edtName.Top + edtName.Height + 8;
+  lbl := TLabel.Create(CustomPage);
+  lbl.Parent := CustomPage.Surface;
+  lbl.Caption := 'Dirección:';
+  lbl.Top := y;
+  lbl.Left := 8;
+  edtAddress := TEdit.Create(CustomPage);
+  edtAddress.Parent := CustomPage.Surface;
+  edtAddress.Top := y + 16;
+  edtAddress.Left := 8;
+  edtAddress.Width := 400;
+  edtAddress.Text := 'Dirección del centro';
+
+  y := edtAddress.Top + edtAddress.Height + 8;
+  lbl := TLabel.Create(CustomPage);
+  lbl.Parent := CustomPage.Surface;
+  lbl.Caption := 'Teléfono:';
+  lbl.Top := y;
+  lbl.Left := 8;
+  edtPhone := TEdit.Create(CustomPage);
+  edtPhone.Parent := CustomPage.Surface;
+  edtPhone.Top := y + 16;
+  edtPhone.Left := 8;
+  edtPhone.Width := 400;
+  edtPhone.Text := '+54 11 1234-5678';
+
+  y := edtPhone.Top + edtPhone.Height + 8;
+  lbl := TLabel.Create(CustomPage);
+  lbl.Parent := CustomPage.Surface;
+  lbl.Caption := 'Email:';
+  lbl.Top := y;
+  lbl.Left := 8;
+  edtEmail := TEdit.Create(CustomPage);
+  edtEmail.Parent := CustomPage.Surface;
+  edtEmail.Top := y + 16;
+  edtEmail.Left := 8;
+  edtEmail.Width := 400;
+  edtEmail.Text := 'contacto@micentro.com';
+
+  y := edtEmail.Top + edtEmail.Height + 8;
+  lbl := TLabel.Create(CustomPage);
+  lbl.Parent := CustomPage.Surface;
+  lbl.Caption := 'Sitio web:';
+  lbl.Top := y;
+  lbl.Left := 8;
+  edtWeb := TEdit.Create(CustomPage);
+  edtWeb.Parent := CustomPage.Surface;
+  edtWeb.Top := y + 16;
+  edtWeb.Left := 8;
+  edtWeb.Width := 400;
+  edtWeb.Text := 'www.micentro.com';
+
+  y := edtWeb.Top + edtWeb.Height + 8;
+  lbl := TLabel.Create(CustomPage);
+  lbl.Parent := CustomPage.Surface;
+  lbl.Caption := 'Matrícula / MP:';
+  lbl.Top := y;
+  lbl.Left := 8;
+  edtMP := TEdit.Create(CustomPage);
+  edtMP.Parent := CustomPage.Surface;
+  edtMP.Top := y + 16;
+  edtMP.Left := 8;
+  edtMP.Width := 400;
+  edtMP.Text := 'MP 12345';
+
+  y := edtMP.Top + edtMP.Height + 8;
+  lbl := TLabel.Create(CustomPage);
+  lbl.Parent := CustomPage.Surface;
+  lbl.Caption := 'Nombre del médico / director:';
+  lbl.Top := y;
+  lbl.Left := 8;
+  edtDoctor := TEdit.Create(CustomPage);
+  edtDoctor.Parent := CustomPage.Surface;
+  edtDoctor.Top := y + 16;
+  edtDoctor.Left := 8;
+  edtDoctor.Width := 400;
+  edtDoctor.Text := 'Juan Pérez';
+
+  y := edtDoctor.Top + edtDoctor.Height + 8;
+  lbl := TLabel.Create(CustomPage);
+  lbl.Parent := CustomPage.Surface;
+  lbl.Caption := 'Logo institucional (PNG recomendado):';
+  lbl.Top := y;
+  lbl.Left := 8;
+  lblLogo := lbl;
+
+  btn := TButton.Create(CustomPage);
+  btn.Parent := CustomPage.Surface;
+  btn.Top := y + 16;
+  btn.Left := 8;
+  btn.Width := 120;
+  btn.Caption := 'Seleccionar...';
+  btn.OnClick := @BrowseLogo;
+
+  logoFile := '';
 end;
 
 procedure WriteInstitutionConfig(const AppDir: string);
