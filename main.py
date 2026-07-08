@@ -18,8 +18,8 @@ def _resource_dir():
     return os.path.dirname(__file__)
 
 
-def _load_qss(theme):
-    qss_file = os.path.join(_resource_dir(), "resources", f"{theme}.qss")
+def _load_qss():
+    qss_file = os.path.join(_resource_dir(), "resources", "dark.qss")
     if os.path.isfile(qss_file):
         with open(qss_file, encoding="utf-8") as f:
             return f.read()
@@ -36,9 +36,7 @@ def main():
     app_icon = QIcon(icon_path)
     app.setWindowIcon(app_icon)
 
-    from config.institution import get_institution
-    theme = get_institution().get("theme", "light")
-    qss = _load_qss(theme)
+    qss = _load_qss()
     if qss:
         app.setStyleSheet(qss)
 

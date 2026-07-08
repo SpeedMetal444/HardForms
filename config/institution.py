@@ -28,7 +28,6 @@ DEFAULT_INSTITUTION = {
     "watermark_path": "",
     "default_logo": "resources/default_logo.png",
     "footer_text": "Documento generado por HardForms © 2026",
-    "theme": "light",
 }
 
 
