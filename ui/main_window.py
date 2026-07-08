@@ -16,7 +16,7 @@ from models.patient import Patient
 from ui.patient_dialog import PatientDialog
 from ui.patient_view import PatientView
 from reports.pdf_generator import generate_full_report, generate_summary_report
-from config.institution import get_institution, is_default_config
+from config.institution import get_institution, is_default_config, save_institution
 from importer import run_import
 from ui.widgets import DateItem
 
@@ -91,6 +91,12 @@ class MainWindow(QMainWindow):
         act_restore = QAction("Restaurar copia de seguridad", self)
         act_restore.triggered.connect(self._on_import_zip)
         menu_herramientas.addAction(act_restore)
+        menu_herramientas.addSeparator()
+        self.act_theme = QAction("Tema oscuro", self)
+        self.act_theme.setCheckable(True)
+        self.act_theme.setChecked(get_institution().get("theme", "light") == "dark")
+        self.act_theme.triggered.connect(self._on_toggle_theme)
+        menu_herramientas.addAction(self.act_theme)
         menu_herramientas.addSeparator()
         act_clear = QAction("Borrar Base de Datos", self)
         act_clear.triggered.connect(self._on_clear_database)
@@ -765,6 +771,21 @@ class MainWindow(QMainWindow):
         from ui.setup_dialog import InstitutionSetupDialog
         dlg = InstitutionSetupDialog(self)
         dlg.exec()
+        self.setWindowTitle(f"HardForms - {get_institution()['name']}")
+
+    def _on_toggle_theme(self):
+        theme = "dark" if self.act_theme.isChecked() else "light"
+        cfg = get_institution()
+        cfg["theme"] = theme
+        save_institution(cfg)
+
+        qss_file = os.path.join(
+            sys._MEIPASS if getattr(sys, 'frozen', False) else os.path.dirname(os.path.dirname(__file__)),
+            "resources", f"{theme}.qss"
+        )
+        if os.path.isfile(qss_file):
+            with open(qss_file, encoding="utf-8") as f:
+                QApplication.instance().setStyleSheet(f.read())
 
     def _on_clear_database(self):
         reply = QMessageBox.warning(

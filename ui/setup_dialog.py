@@ -133,7 +133,8 @@ class InstitutionSetupDialog(QDialog):
         self.preview.setText("Sin logo")
 
     def _on_accept(self):
-        cfg = {
+        cfg = dict(self._cfg)
+        cfg.update({
             "name": self.input_name.text().strip(),
             "address": self.input_address.text().strip(),
             "phone": self.input_phone.text().strip(),
@@ -144,7 +145,7 @@ class InstitutionSetupDialog(QDialog):
             "logo_path": self._logo_path,
             "watermark_path": self._watermark_path,
             "footer_text": "Documento generado por HardForms © 2026",
-        }
+        })
         save_institution(cfg)
         QMessageBox.information(self, "Guardado",
                                 "Configuración guardada correctamente.\n"

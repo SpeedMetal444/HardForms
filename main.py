@@ -18,6 +18,14 @@ def _resource_dir():
     return os.path.dirname(__file__)
 
 
+def _load_qss(theme):
+    qss_file = os.path.join(_resource_dir(), "resources", f"{theme}.qss")
+    if os.path.isfile(qss_file):
+        with open(qss_file, encoding="utf-8") as f:
+            return f.read()
+    return ""
+
+
 def main():
     os.makedirs(_data_dir(), exist_ok=True)
     init_db()
@@ -27,6 +35,12 @@ def main():
     icon_path = os.path.join(_resource_dir(), "resources", "default_logo.png")
     app_icon = QIcon(icon_path)
     app.setWindowIcon(app_icon)
+
+    from config.institution import get_institution
+    theme = get_institution().get("theme", "light")
+    qss = _load_qss(theme)
+    if qss:
+        app.setStyleSheet(qss)
 
     window = MainWindow()
     window.show()
