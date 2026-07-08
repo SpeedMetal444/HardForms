@@ -5,6 +5,7 @@ from PyQt6.QtWidgets import (
     QPushButton, QLineEdit, QTableWidget, QTableWidgetItem,
     QHeaderView, QMessageBox, QFileDialog, QLabel,
     QStatusBar, QAbstractItemView, QProgressDialog, QMenuBar,
+    QApplication, QDialog,
 )
 from PyQt6.QtCore import Qt, QUrl, QSize
 from PyQt6.QtGui import QAction, QIcon, QPixmap, QDesktopServices
@@ -23,6 +24,10 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle(f"HardForms - {INSTITUTION['name']}")
         self.setMinimumSize(1100, 650)
+        logo_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "resources", "default_logo.png")
+        app_icon = QIcon(logo_path)
+        self.setWindowIcon(app_icon)
+        QApplication.setWindowIcon(app_icon)
         self._setup_ui()
         self._load_patients()
 
@@ -519,8 +524,24 @@ class MainWindow(QMainWindow):
         QDesktopServices.openUrl(url)
 
     def _on_about(self):
-        QMessageBox.about(
-            self, "Acerca de HardForms",
+        dlg = QDialog(self)
+        dlg.setWindowTitle("Acerca de HardForms")
+        dlg.setMinimumWidth(600)
+        layout = QHBoxLayout(dlg)
+
+        # Logo a la derecha
+        logo_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "resources", "default_logo.png")
+        pixmap = QPixmap(logo_path)
+        if not pixmap.isNull():
+            pixmap = pixmap.scaled(160, 160, Qt.AspectRatioMode.KeepAspectRatio,
+                                   Qt.TransformationMode.SmoothTransformation)
+            lbl_logo = QLabel()
+            lbl_logo.setPixmap(pixmap)
+            lbl_logo.setFixedSize(160, 160)
+            layout.addWidget(lbl_logo, alignment=Qt.AlignmentFlag.AlignTop)
+
+        # Texto a la izquierda
+        text = QLabel(
             "<b>HardForms</b><br><br>"
             "Versión 1.0<br><br>"
             "Sistema de gestión de pacientes e informes médicos desarrollado "
@@ -543,6 +564,10 @@ class MainWindow(QMainWindow):
             "• PyInstaller<br><br>"
             "© 2026 HardForms. Todos los derechos reservados."
         )
+        text.setWordWrap(True)
+        text.setOpenExternalLinks(True)
+        layout.addWidget(text, 1)
+        dlg.exec()
 
     def _on_import(self):
         file_path, _ = QFileDialog.getOpenFileName(
