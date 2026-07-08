@@ -17,6 +17,21 @@ from database.db import get_patient, get_diagnoses_for_patient
 from config.institution import get_institution
 
 
+# Grayscale palette
+_GRAY_900 = HexColor("#1F2937")
+_GRAY_800 = HexColor("#374151")
+_GRAY_700 = HexColor("#4B5563")
+_GRAY_600 = HexColor("#6B7280")
+_GRAY_500 = HexColor("#9CA3AF")
+_GRAY_400 = HexColor("#D1D5DB")
+_GRAY_300 = HexColor("#DEE2E6")
+_GRAY_200 = HexColor("#E5E7EB")
+_GRAY_100 = HexColor("#F3F4F6")
+_GRAY_50  = HexColor("#F9FAFB")
+_WHITE    = colors.white
+_BLACK    = HexColor("#111827")
+
+
 def _header_footer(canvas, doc):
     inst = get_institution()
     canvas.saveState()
@@ -43,12 +58,12 @@ def _header_footer(canvas, doc):
         except Exception:
             pass
 
-    canvas.setStrokeColor(HexColor("#2980B9"))
+    canvas.setStrokeColor(_GRAY_400)
     canvas.setLineWidth(0.5)
     canvas.line(2.5 * cm, A4[1] - 1.5 * cm, A4[0] - 2.5 * cm, A4[1] - 1.5 * cm)
 
     canvas.setFont("Helvetica", 7)
-    canvas.setFillColor(HexColor("#95A5A6"))
+    canvas.setFillColor(_GRAY_500)
     canvas.drawCentredString(A4[0] / 2, 1.2 * cm, inst["name"])
     canvas.drawRightString(A4[0] - 2.5 * cm, 1.2 * cm, f"Pág. {canvas.getPageNumber()}")
     canvas.restoreState()
@@ -59,10 +74,10 @@ def _section(text, body, styles, col_width=16 * cm):
         [[Paragraph(text, styles["SectionTitle"])]],
         colWidths=[col_width],
         style=[
-            ("BACKGROUND", (0, 0), (-1, -1), HexColor("#2980B9")),
-            ("TEXTCOLOR", (0, 0), (-1, -1), colors.white),
-            ("TOPPADDING", (0, 0), (-1, -1), 4 * mm),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 4 * mm),
+            ("BACKGROUND", (0, 0), (-1, -1), _GRAY_700),
+            ("TEXTCOLOR", (0, 0), (-1, -1), _WHITE),
+            ("TOPPADDING", (0, 0), (-1, -1), 3 * mm),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 3 * mm),
             ("LEFTPADDING", (0, 0), (-1, -1), 4 * mm),
         ]
     )
@@ -75,7 +90,8 @@ def _section(text, body, styles, col_width=16 * cm):
         ("RIGHTPADDING", (0, 0), (-1, -1), 0),
         ("TOPPADDING", (0, 0), (-1, -1), 0),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
-        ("LINEBELOW", (0, -1), (-1, -1), 0.5, HexColor("#D5D8DC")),
+        ("LINEBELOW", (0, -1), (-1, -1), 0.5, _GRAY_300),
+        ("BACKGROUND", (0, 1), (-1, -1), _GRAY_50),
     ]))
     return t
 
@@ -87,11 +103,11 @@ def _kv_table(data, styles, col_widths=None, label_width=4.5 * cm):
     t.setStyle(TableStyle([
         ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
         ("FONTSIZE", (0, 0), (-1, -1), 9),
-        ("TEXTCOLOR", (0, 0), (0, -1), HexColor("#2C3E50")),
-        ("TEXTCOLOR", (1, 0), (1, -1), HexColor("#34495E")),
+        ("TEXTCOLOR", (0, 0), (0, -1), _GRAY_800),
+        ("TEXTCOLOR", (1, 0), (1, -1), _GRAY_900),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 2.5 * mm),
         ("TOPPADDING", (0, 0), (-1, -1), 2.5 * mm),
-        ("LINEBELOW", (0, 0), (-1, -1), 0.5, HexColor("#E8E8E8")),
+        ("LINEBELOW", (0, 0), (-1, -1), 0.5, _GRAY_200),
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
         ("LEFTPADDING", (0, 0), (-1, -1), 4 * mm),
     ]))
@@ -142,7 +158,7 @@ def _build_header(styles, col_width=16 * cm):
 
     elements.append(Spacer(1, 3 * mm))
     elements.append(Table([[""]], colWidths=[col_width],
-        style=[("LINEBELOW", (0, 0), (-1, -1), 2, HexColor("#2980B9"))]))
+        style=[("LINEBELOW", (0, 0), (-1, -1), 2, _GRAY_500)]))
     elements.append(Spacer(1, 3 * mm))
     return elements
 
@@ -152,7 +168,7 @@ def _build_footer(styles):
     elements = []
     elements.append(Spacer(1, 1.5 * cm))
     elements.append(Table([[""]], colWidths=[16 * cm],
-        style=[("LINEABOVE", (0, 0), (-1, -1), 0.5, HexColor("#BDC3C7"))]))
+        style=[("LINEABOVE", (0, 0), (-1, -1), 0.5, _GRAY_400)]))
     elements.append(Spacer(1, 2 * mm))
     footer_parts = []
     if INSTITUTION.get("footer_text"):
@@ -168,7 +184,7 @@ def _build_footer(styles):
         elements.append(Paragraph(
             "<br/>".join(footer_parts),
             ParagraphStyle("Footer", parent=styles["Normal"],
-                           fontSize=7, textColor=HexColor("#95A5A6"), alignment=TA_CENTER)))
+                           fontSize=7, textColor=_GRAY_500, alignment=TA_CENTER)))
     return elements
 
 
@@ -182,6 +198,63 @@ def _calcular_edad(birth_date: str) -> str:
         return f"{edad} años"
     except Exception:
         return "—"
+
+
+def _compact_table(pairs, styles, col_widths=None, font_size=9):
+    if col_widths is None:
+        col_widths = [3.2 * cm, 4.8 * cm, 3.2 * cm, 4.8 * cm]
+    kv_rows = []
+    for l1, v1, l2, v2 in pairs:
+        kv_rows.append([
+            Paragraph(f"<b>{l1}:</b>", styles["CellLabel"]),
+            Paragraph(v1, styles["CellValue"]),
+            Paragraph(f"<b>{l2}:</b>" if l2 else "", styles["CellLabel"]),
+            Paragraph(v2 if l2 else "", styles["CellValue"]),
+        ])
+    t = Table(kv_rows, colWidths=col_widths)
+    t.setStyle(TableStyle([
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 2.5 * mm),
+        ("TOPPADDING", (0, 0), (-1, -1), 2.5 * mm),
+        ("LINEBELOW", (0, 0), (-1, -2), 0.5, _GRAY_200),
+        ("LEFTPADDING", (0, 0), (-1, -1), 2 * mm),
+        ("FONTSIZE", (0, 0), (-1, -1), font_size),
+    ]))
+    return t
+
+
+def _img_header(text, styles, col_width=16 * cm):
+    return Table(
+        [[Paragraph(text, styles["SectionTitle"])]],
+        colWidths=[col_width],
+        style=[
+            ("BACKGROUND", (0, 0), (-1, -1), _GRAY_700),
+            ("TEXTCOLOR", (0, 0), (-1, -1), _WHITE),
+            ("TOPPADDING", (0, 0), (-1, -1), 3 * mm),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 3 * mm),
+            ("LEFTPADDING", (0, 0), (-1, -1), 4 * mm),
+        ]
+    )
+
+
+def _diagnosis_table(diagnoses, col_width=16 * cm):
+    diag_data = [["Diagnóstico", "Fecha"]]
+    for d in diagnoses:
+        diag_data.append([d.description, d.date or "—"])
+    diag_table = Table(diag_data, colWidths=[12 * cm, 4 * cm])
+    diag_table.setStyle(TableStyle([
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 0), (-1, -1), 9),
+        ("BACKGROUND", (0, 0), (-1, 0), _GRAY_700),
+        ("TEXTCOLOR", (0, 0), (-1, 0), _WHITE),
+        ("ALIGN", (1, 0), (1, -1), "CENTER"),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [_GRAY_50, _WHITE]),
+        ("GRID", (0, 0), (-1, -1), 0.5, _GRAY_300),
+        ("TOPPADDING", (0, 0), (-1, -1), 3 * mm),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 3 * mm),
+        ("LEFTPADDING", (0, 0), (-1, -1), 3 * mm),
+    ]))
+    return diag_table
 
 
 def generate_full_report(patient_id: int, output_path: str):
@@ -202,17 +275,17 @@ def generate_full_report(patient_id: int, output_path: str):
 
     styles = getSampleStyleSheet()
     styles.add(ParagraphStyle("InstName", parent=styles["Heading1"],
-        fontSize=20, textColor=HexColor("#2980B9"), spaceAfter=2 * mm,
+        fontSize=20, textColor=_GRAY_900, spaceAfter=2 * mm,
         alignment=TA_CENTER, fontName="Helvetica-Bold"))
     styles.add(ParagraphStyle("InstInfo", parent=styles["Normal"],
-        fontSize=10, textColor=HexColor("#34495E"),
+        fontSize=10, textColor=_GRAY_600,
         alignment=TA_CENTER, spaceAfter=1 * mm, leading=13))
     styles.add(ParagraphStyle("ReportTitle", parent=styles["Heading2"],
-        fontSize=16, textColor=HexColor("#2980B9"),
+        fontSize=16, textColor=_GRAY_800,
         spaceBefore=6 * mm, spaceAfter=5 * mm, alignment=TA_CENTER,
         fontName="Helvetica-Bold"))
     styles.add(ParagraphStyle("SectionTitle", parent=styles["Normal"],
-        fontSize=10, textColor=colors.white,
+        fontSize=10, textColor=_WHITE,
         alignment=TA_LEFT, fontName="Helvetica-Bold"))
     styles.add(ParagraphStyle("CellLabel", parent=styles["Normal"],
         fontSize=9, fontName="Helvetica-Bold"))
@@ -222,37 +295,17 @@ def generate_full_report(patient_id: int, output_path: str):
         fontSize=10, leading=16,
         spaceBefore=3 * mm, spaceAfter=5 * mm, alignment=TA_JUSTIFY))
     styles.add(ParagraphStyle("ImgDesc", parent=styles["Normal"],
-        fontSize=8, leading=11, textColor=HexColor("#2C3E50"),
+        fontSize=8, leading=11, textColor=_GRAY_700,
         alignment=TA_CENTER, spaceBefore=1 * mm, spaceAfter=1 * mm,
         fontName="Helvetica-Bold"))
     styles.add(ParagraphStyle("ImgErr", parent=styles["Normal"],
-        fontSize=8, textColor=HexColor("#E74C3C")))
+        fontSize=8, textColor=_GRAY_500))
 
     elements = []
     elements.extend(_build_header(styles))
     elements.append(Paragraph("INFORME MÉDICO COMPLETO", styles["ReportTitle"]))
 
-    # Patient data — 2 pairs per row
     edad = _calcular_edad(patient.birth_date) if patient.birth_date else "—"
-
-    def _make_compact_table(pairs, styles):
-        kv_rows = []
-        for l1, v1, l2, v2 in pairs:
-            kv_rows.append([
-                Paragraph(f"<b>{l1}:</b>", styles["CellLabel"]),
-                Paragraph(v1, styles["CellValue"]),
-                Paragraph(f"<b>{l2}:</b>" if l2 else "", styles["CellLabel"]),
-                Paragraph(v2 if l2 else "", styles["CellValue"]),
-            ])
-        t = Table(kv_rows, colWidths=[3.2 * cm, 4.8 * cm, 3.2 * cm, 4.8 * cm])
-        t.setStyle(TableStyle([
-            ("VALIGN", (0, 0), (-1, -1), "TOP"),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 2.5 * mm),
-            ("TOPPADDING", (0, 0), (-1, -1), 2.5 * mm),
-            ("LINEBELOW", (0, 0), (-1, -2), 0.5, HexColor("#E8E8E8")),
-            ("LEFTPADDING", (0, 0), (-1, -1), 2 * mm),
-        ]))
-        return t
 
     paciente_pairs = [
         ("Apellido y Nombre", patient.full_name, "DNI", patient.dni or "—"),
@@ -263,7 +316,7 @@ def generate_full_report(patient_id: int, output_path: str):
         ("Estudio", patient.study_type or "—", "Centro", patient.center or "—"),
         ("Email", patient.email or "—", "Domicilio", patient.address or "—"),
     ]
-    elements.append(_section("Datos del Paciente", _make_compact_table(paciente_pairs, styles), styles))
+    elements.append(_section("Datos del Paciente", _compact_table(paciente_pairs, styles), styles))
     elements.append(Spacer(1, 4 * mm))
 
     anestesia_pairs = [
@@ -271,28 +324,12 @@ def generate_full_report(patient_id: int, output_path: str):
         ("Postoperatorio", patient.postop or "—", "Anestesiólogo", patient.anesthesiologist or "—"),
         ("Escala Boston", patient.boston_scale or "—", "", ""),
     ]
-    elements.append(_section("Anestesia / Preparación", _make_compact_table(anestesia_pairs, styles), styles))
+    elements.append(_section("Anestesia / Preparación", _compact_table(anestesia_pairs, styles), styles))
     elements.append(Spacer(1, 4 * mm))
 
     if diagnoses:
-        diag_data = [["Diagnóstico", "Fecha"]]
-        for d in diagnoses:
-            diag_data.append([d.description, d.date or "—"])
-        diag_table = Table(diag_data, colWidths=[12 * cm, 4 * cm])
-        diag_table.setStyle(TableStyle([
-            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-            ("FONTSIZE", (0, 0), (-1, -1), 9),
-            ("BACKGROUND", (0, 0), (-1, 0), HexColor("#2980B9")),
-            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-            ("ALIGN", (1, 0), (1, -1), "CENTER"),
-            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [HexColor("#F8F9FA"), colors.white]),
-            ("GRID", (0, 0), (-1, -1), 0.5, HexColor("#D5D8DC")),
-            ("TOPPADDING", (0, 0), (-1, -1), 3 * mm),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 3 * mm),
-            ("LEFTPADDING", (0, 0), (-1, -1), 3 * mm),
-        ]))
         elements.append(Spacer(1, 2 * mm))
-        elements.append(diag_table)
+        elements.append(_diagnosis_table(diagnoses))
         elements.append(Spacer(1, 4 * mm))
 
     if patient.description:
@@ -301,20 +338,8 @@ def generate_full_report(patient_id: int, output_path: str):
             Paragraph(patient.description.replace("\n", "<br/>"), styles["DescText"]), styles))
         elements.append(Spacer(1, 4 * mm))
 
-    # Images — 3 per row
     if patient.attachments:
-        header_img = Table(
-            [[Paragraph("Imágenes Adjuntas", styles["SectionTitle"])]],
-            colWidths=[16 * cm],
-            style=[
-                ("BACKGROUND", (0, 0), (-1, -1), HexColor("#2980B9")),
-                ("TEXTCOLOR", (0, 0), (-1, -1), colors.white),
-                ("TOPPADDING", (0, 0), (-1, -1), 4 * mm),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 4 * mm),
-                ("LEFTPADDING", (0, 0), (-1, -1), 4 * mm),
-            ]
-        )
-        elements.append(header_img)
+        elements.append(_img_header("Imágenes Adjuntas", styles))
         rows = []
         for i in range(0, len(patient.attachments), 3):
             cells = []
@@ -369,24 +394,24 @@ def generate_summary_report(patient_id: int, output_path: str):
 
     styles = getSampleStyleSheet()
     styles.add(ParagraphStyle("InstName", parent=styles["Heading1"],
-        fontSize=14, textColor=HexColor("#2980B9"), spaceAfter=1 * mm,
+        fontSize=14, textColor=_GRAY_900, spaceAfter=1 * mm,
         alignment=TA_CENTER, fontName="Helvetica-Bold"))
     styles.add(ParagraphStyle("InstInfo", parent=styles["Normal"],
-        fontSize=7, textColor=HexColor("#34495E"),
+        fontSize=7, textColor=_GRAY_600,
         alignment=TA_CENTER, spaceAfter=1 * mm, leading=9))
     styles.add(ParagraphStyle("SectionTitle", parent=styles["Normal"],
-        fontSize=8, textColor=colors.white,
+        fontSize=8, textColor=_WHITE,
         alignment=TA_LEFT, fontName="Helvetica-Bold"))
     styles.add(ParagraphStyle("CellLabel", parent=styles["Normal"],
         fontSize=7.5, fontName="Helvetica-Bold"))
     styles.add(ParagraphStyle("CellValue", parent=styles["Normal"],
         fontSize=7.5))
     styles.add(ParagraphStyle("ImgDesc", parent=styles["Normal"],
-        fontSize=7, leading=9, textColor=HexColor("#2C3E50"),
+        fontSize=7, leading=9, textColor=_GRAY_700,
         alignment=TA_CENTER, spaceBefore=0.5 * mm, spaceAfter=0.5 * mm,
         fontName="Helvetica-Bold"))
     styles.add(ParagraphStyle("ImgErr", parent=styles["Normal"],
-        fontSize=6, textColor=HexColor("#E74C3C")))
+        fontSize=6, textColor=_GRAY_500))
     styles.add(ParagraphStyle("DiagText", parent=styles["Normal"],
         fontSize=7.5, leading=10))
     styles.add(ParagraphStyle("DescText", parent=styles["Normal"],
@@ -396,7 +421,6 @@ def generate_summary_report(patient_id: int, output_path: str):
     elements = []
     elements.extend(_build_header(styles))
 
-    # Patient data — 2 pairs per row
     pairs = [
         ("Paciente", patient.full_name, "DNI", patient.dni or "—"),
         ("HC", patient.medical_record_number or "—", "Afiliado", patient.insurance or "—"),
@@ -404,26 +428,12 @@ def generate_summary_report(patient_id: int, output_path: str):
          "Médico", patient.doctor or "—"),
         ("Estudio", patient.study_type or "—", "Centro", patient.center or "—"),
     ]
-    kv_rows = []
-    for l1, v1, l2, v2 in pairs:
-        kv_rows.append([
-            Paragraph(f"<b>{l1}:</b>", styles["CellLabel"]),
-            Paragraph(v1, styles["CellValue"]),
-            Paragraph(f"<b>{l2}:</b>", styles["CellLabel"]),
-            Paragraph(v2, styles["CellValue"]),
-        ])
-    compact_table = Table(kv_rows, colWidths=[2.2 * cm, 5.8 * cm, 2.2 * cm, 5.8 * cm])
-    compact_table.setStyle(TableStyle([
-        ("VALIGN", (0, 0), (-1, -1), "TOP"),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 1.5 * mm),
-        ("TOPPADDING", (0, 0), (-1, -1), 1.5 * mm),
-        ("LINEBELOW", (0, 0), (-1, -2), 0.3, HexColor("#E8E8E8")),
-        ("LEFTPADDING", (0, 0), (-1, -1), 1 * mm),
-    ]))
+    compact_table = _compact_table(pairs, styles,
+                                   col_widths=[2.2 * cm, 5.8 * cm, 2.2 * cm, 5.8 * cm],
+                                   font_size=7.5)
     elements.append(_section("Datos del Paciente", compact_table, styles))
     elements.append(Spacer(1, 2 * mm))
 
-    # Diagnoses compact
     if diagnoses:
         diag_text = "<br/>".join(
             f"<b>{d.description}</b>  ({d.date or '—'})" for d in diagnoses
@@ -432,27 +442,14 @@ def generate_summary_report(patient_id: int, output_path: str):
             Paragraph(diag_text, styles["DiagText"]), styles))
         elements.append(Spacer(1, 2 * mm))
 
-    # Medical report
     if patient.description:
         elements.append(_section("Informe Médico",
             Paragraph(patient.description.replace("\n", "<br/>"), styles["DescText"]), styles))
         elements.append(Spacer(1, 2 * mm))
 
-    # Images (max 3, one row)
     if patient.attachments:
         imgs = patient.attachments[:3]
-        header_img = Table(
-            [[Paragraph("Imágenes", styles["SectionTitle"])]],
-            colWidths=[16 * cm],
-            style=[
-                ("BACKGROUND", (0, 0), (-1, -1), HexColor("#2980B9")),
-                ("TEXTCOLOR", (0, 0), (-1, -1), colors.white),
-                ("TOPPADDING", (0, 0), (-1, -1), 4 * mm),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 4 * mm),
-                ("LEFTPADDING", (0, 0), (-1, -1), 4 * mm),
-            ]
-        )
-        elements.append(header_img)
+        elements.append(_img_header("Imágenes", styles))
         cells = []
         for att in imgs:
             if not os.path.isfile(att.path):
