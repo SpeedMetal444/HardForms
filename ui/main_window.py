@@ -15,7 +15,7 @@ from models.diagnosis import Diagnosis
 from models.patient import Patient
 from ui.patient_dialog import PatientDialog
 from ui.patient_view import PatientView
-from reports.pdf_generator import generate_patient_report
+from reports.pdf_generator import generate_full_report, generate_summary_report
 from config.institution import get_institution
 from importer import run_import
 from ui.widgets import DateItem
@@ -67,9 +67,12 @@ class MainWindow(QMainWindow):
         menu_archivo.addAction(act_exit)
 
         menu_herramientas = menubar.addMenu("Herramientas")
-        act_pdf = QAction("Abrir como PDF", self)
+        act_pdf = QAction("Informe Completo", self)
         act_pdf.triggered.connect(self._on_generate_pdf)
         menu_herramientas.addAction(act_pdf)
+        act_pdf_summary = QAction("Informe Resumido", self)
+        act_pdf_summary.triggered.connect(self._on_generate_pdf_summary)
+        menu_herramientas.addAction(act_pdf_summary)
         act_duplicate = QAction("Duplicar Paciente", self)
         act_duplicate.triggered.connect(self._on_duplicate_patient)
         menu_herramientas.addAction(act_duplicate)
@@ -190,9 +193,12 @@ class MainWindow(QMainWindow):
         act_view = QAction("Abrir", self)
         act_view.triggered.connect(self._on_view_patient)
         menu.addAction(act_view)
-        act_pdf = QAction("Abrir como PDF", self)
+        act_pdf = QAction("Informe Completo", self)
         act_pdf.triggered.connect(self._on_generate_pdf)
         menu.addAction(act_pdf)
+        act_pdf_s = QAction("Informe Resumido", self)
+        act_pdf_s.triggered.connect(self._on_generate_pdf_summary)
+        menu.addAction(act_pdf_s)
         menu.addSeparator()
         act_edit = QAction("Editar", self)
         act_edit.triggered.connect(self._on_edit_patient)
@@ -485,11 +491,13 @@ class MainWindow(QMainWindow):
 
         elements.append(Paragraph("Generación de PDF", h1))
         elements.append(Paragraph(
-            "Seleccioná un paciente y usá Herramientas → Abrir como PDF "
-            "para generar un informe en PDF con todos los datos del paciente, "
+            "Seleccioná un paciente y usá Herramientas → Informe Completo "
+            "para generar un PDF con todos los datos del paciente, "
             "diagnósticos (tabla con encabezado azul y filas alternadas) "
-            "e imágenes con sus descripciones. El PDF incluye el logo y "
-            "datos de la institución en el encabezado y pie de página.", body))
+            "e imágenes con sus descripciones. Usá Informe Resumido para "
+            "un PDF de una sola página con datos clave, diagnósticos y "
+            "hasta 3 imágenes. Ambos incluyen el logo y datos de la "
+            "institución en encabezado y pie de página.", body))
         elements.append(Spacer(1, 0.3*cm))
 
         elements.append(Paragraph("Importación de datos", h1))
@@ -522,7 +530,8 @@ class MainWindow(QMainWindow):
 
         elements.append(Paragraph("Menú de Herramientas", h1))
         items = [
-            "<b>Abrir como PDF</b>: genera el informe del paciente seleccionado.",
+            "<b>Informe Completo</b>: genera el PDF completo del paciente seleccionado.",
+            "<b>Informe Resumido</b>: genera un PDF resumido de una página (datos clave, diagnósticos, hasta 3 imágenes).",
             "<b>Duplicar Paciente</b>: crea una copia exacta con nuevo número de HC.",
             "<b>Crear copia de seguridad</b>: exporta DB + imágenes a .zip.",
             "<b>Restaurar copia de seguridad</b>: importa desde .zip.",
@@ -789,7 +798,24 @@ class MainWindow(QMainWindow):
         tmp = tempfile.NamedTemporaryFile(suffix=".pdf", delete=False)
         tmp.close()
         try:
-            generate_patient_report(patient_id, tmp.name)
+            generate_full_report(patient_id, tmp.name)
             QDesktopServices.openUrl(QUrl.fromLocalFile(tmp.name))
         except Exception as e:
             QMessageBox.critical(self, "Error", f"No se pudo generar el informe:\n{e}")
+
+    def _on_generate_pdf_summary(self):
+        patient_id = self._get_selected_patient_id()
+        if patient_id is None:
+            return
+
+        patient = get_patient(patient_id)
+        if patient is None:
+            return
+
+        tmp = tempfile.NamedTemporaryFile(suffix=".pdf", delete=False)
+        tmp.close()
+        try:
+            generate_summary_report(patient_id, tmp.name)
+            QDesktopServices.openUrl(QUrl.fromLocalFile(tmp.name))
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"No se pudo generar el informe resumido:\n{e}")

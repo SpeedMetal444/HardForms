@@ -9,7 +9,7 @@ from PyQt6.QtCore import Qt, QUrl
 from PyQt6.QtGui import QPixmap, QDesktopServices
 from database.db import get_patient, get_diagnoses_for_patient
 from config.institution import get_institution
-from reports.pdf_generator import generate_patient_report
+from reports.pdf_generator import generate_full_report, generate_summary_report
 
 
 class PatientView(QDialog):
@@ -31,9 +31,12 @@ class PatientView(QDialog):
         self.btn_edit = QPushButton("Editar")
         self.btn_edit.clicked.connect(self._on_edit)
         btn_layout.addWidget(self.btn_edit)
-        self.btn_print = QPushButton("Abrir como PDF")
+        self.btn_print = QPushButton("Informe Completo")
         self.btn_print.clicked.connect(self._on_print)
         btn_layout.addWidget(self.btn_print)
+        self.btn_print_summary = QPushButton("Informe Resumido")
+        self.btn_print_summary.clicked.connect(self._on_print_summary)
+        btn_layout.addWidget(self.btn_print_summary)
         btn_layout.addStretch()
         self.btn_close = QPushButton("Cerrar")
         self.btn_close.clicked.connect(self.accept)
@@ -244,8 +247,20 @@ class PatientView(QDialog):
         tmp = tempfile.NamedTemporaryFile(suffix=".pdf", delete=False)
         tmp.close()
         try:
-            generate_patient_report(self.patient_id, tmp.name)
+            generate_full_report(self.patient_id, tmp.name)
             QDesktopServices.openUrl(QUrl.fromLocalFile(tmp.name))
         except Exception as e:
             from PyQt6.QtWidgets import QMessageBox
             QMessageBox.critical(self, "Error", f"No se pudo generar el informe:\n{e}")
+
+    def _on_print_summary(self):
+        if not self.patient_id:
+            return
+        tmp = tempfile.NamedTemporaryFile(suffix=".pdf", delete=False)
+        tmp.close()
+        try:
+            generate_summary_report(self.patient_id, tmp.name)
+            QDesktopServices.openUrl(QUrl.fromLocalFile(tmp.name))
+        except Exception as e:
+            from PyQt6.QtWidgets import QMessageBox
+            QMessageBox.critical(self, "Error", f"No se pudo generar el informe resumido:\n{e}")
