@@ -11,10 +11,11 @@ from reportlab.lib import colors
 from reportlab.lib.colors import HexColor
 
 from database.db import get_patient, get_diagnoses_for_patient
-from config.institution import INSTITUTION
+from config.institution import get_institution
 
 
 def _header_footer(canvas, doc):
+    inst = get_institution()
     canvas.saveState()
     # Header line
     canvas.setStrokeColor(HexColor("#2C3E50"))
@@ -23,7 +24,7 @@ def _header_footer(canvas, doc):
     # Footer
     canvas.setFont("Helvetica", 7)
     canvas.setFillColor(HexColor("#95A5A6"))
-    canvas.drawCentredString(A4[0] / 2, 1.2 * cm, INSTITUTION["name"])
+    canvas.drawCentredString(A4[0] / 2, 1.2 * cm, inst["name"])
     canvas.drawRightString(A4[0] - 2.5 * cm, 1.2 * cm, f"Pág. {canvas.getPageNumber()}")
     canvas.restoreState()
 
@@ -34,6 +35,7 @@ def generate_patient_report(patient_id: int, output_path: str):
         raise ValueError(f"Paciente ID {patient_id} no encontrado")
 
     diagnoses = get_diagnoses_for_patient(patient_id)
+    INSTITUTION = get_institution()
 
     doc = SimpleDocTemplate(
         output_path,
@@ -92,9 +94,25 @@ def generate_patient_report(patient_id: int, output_path: str):
 
     info_lines = [
         f"<b>{INSTITUTION['name']}</b>",
-        f"{INSTITUTION['address']} | Tel: {INSTITUTION['phone']}",
-        f"{INSTITUTION['email']} | {INSTITUTION['web']}",
     ]
+    details = []
+    if INSTITUTION.get("address"):
+        details.append(INSTITUTION["address"])
+    if INSTITUTION.get("phone"):
+        details.append(f"Tel: {INSTITUTION['phone']}")
+    if INSTITUTION.get("mp_number"):
+        details.append(f"MP: {INSTITUTION['mp_number']}")
+    if details:
+        info_lines.append(" | ".join(details))
+    contact = []
+    if INSTITUTION.get("email"):
+        contact.append(INSTITUTION["email"])
+    if INSTITUTION.get("web"):
+        contact.append(INSTITUTION["web"])
+    if INSTITUTION.get("doctor_name"):
+        contact.append(f"Dr. {INSTITUTION['doctor_name']}")
+    if contact:
+        info_lines.append(" | ".join(contact))
     info_text = Paragraph("<br/>".join(info_lines), styles["InstitutionInfo"])
 
     if header_parts:
@@ -110,10 +128,6 @@ def generate_patient_report(patient_id: int, output_path: str):
         elements.append(header_table)
     else:
         elements.append(Paragraph(INSTITUTION["name"], styles["InstitutionName"]))
-        elements.append(Paragraph(
-            f"{INSTITUTION['address']} | Tel: {INSTITUTION['phone']}",
-            styles["InstitutionInfo"]
-        ))
 
     elements.append(Spacer(1, 2 * mm))
 
@@ -131,6 +145,7 @@ def generate_patient_report(patient_id: int, output_path: str):
     data = [
         ["Apellido y Nombre", patient.full_name],
         ["DNI", patient.dni or "—"],
+        ["Nro. Historia Clínica", patient.medical_record_number or "—"],
         ["Afiliado", patient.insurance or "—"],
         ["Afiliado Nº", patient.insurance_number or "—"],
         ["Fecha de nacimiento", patient.birth_date or "—"],
@@ -138,7 +153,6 @@ def generate_patient_report(patient_id: int, output_path: str):
         ["Teléfono", patient.phone or "—"],
         ["Email", patient.email or "—"],
         ["Domicilio", patient.address or "—"],
-        ["Nro. Historia Clínica", patient.medical_record_number or "—"],
     ]
 
     t = Table(data, colWidths=[5 * cm, 11 * cm])
@@ -152,6 +166,31 @@ def generate_patient_report(patient_id: int, output_path: str):
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
         ("LEFTPADDING", (0, 0), (-1, -1), 4 * mm),
     ]))
+    elements.append(t)
+    elements.append(Spacer(1, 4 * mm))
+
+    # ===== PROCEDURE DATA =====
+    proc_fields = [
+        ("Médico Operador", patient.doctor),
+        ("Tipo de Anestesia", patient.anesthesia_type),
+        ("Droga", patient.drug),
+        ("Postoperatorio", patient.postop),
+        ("Anestesiólogo", patient.anesthesiologist),
+        ("Escala de Boston", patient.boston_scale),
+    ]
+    proc_data = [[label, val or "—"] for label, val in proc_fields]
+    t = Table(proc_data, colWidths=[5 * cm, 11 * cm])
+    t.setStyle(TableStyle([
+        ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 0), (-1, -1), 9),
+        ("TEXTCOLOR", (0, 0), (0, -1), HexColor("#2C3E50")),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 2.5 * mm),
+        ("TOPPADDING", (0, 0), (-1, -1), 2.5 * mm),
+        ("LINEBELOW", (0, 0), (-1, -1), 0.5, HexColor("#ECF0F1")),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 4 * mm),
+    ]))
+    elements.append(Paragraph("Datos del Estudio / Procedimiento", styles["SectionTitle"]))
     elements.append(t)
     elements.append(Spacer(1, 4 * mm))
 
@@ -217,10 +256,19 @@ def generate_patient_report(patient_id: int, output_path: str):
     elements.append(Table([[""]], colWidths=[16 * cm],
                           style=[("LINEABOVE", (0, 0), (-1, -1), 0.5, HexColor("#BDC3C7"))]))
     elements.append(Spacer(1, 2 * mm))
-    footer_text = INSTITUTION.get("footer_text", "")
-    if footer_text:
+    footer_lines = []
+    if INSTITUTION.get("footer_text"):
+        footer_lines.append(INSTITUTION["footer_text"])
+    parts = []
+    if INSTITUTION.get("doctor_name"):
+        parts.append(f"Dr. {INSTITUTION['doctor_name']}")
+    if INSTITUTION.get("mp_number"):
+        parts.append(f"MP: {INSTITUTION['mp_number']}")
+    if parts:
+        footer_lines.append(" | ".join(parts))
+    if footer_lines:
         elements.append(Paragraph(
-            footer_text,
+            "<br/>".join(footer_lines),
             ParagraphStyle("Footer", parent=styles["Normal"],
                            fontSize=7, textColor=HexColor("#95A5A6"), alignment=TA_CENTER)
         ))

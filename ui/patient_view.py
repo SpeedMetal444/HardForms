@@ -8,7 +8,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, QUrl
 from PyQt6.QtGui import QPixmap, QDesktopServices
 from database.db import get_patient, get_diagnoses_for_patient
-from config.institution import INSTITUTION
+from config.institution import get_institution
 from reports.pdf_generator import generate_patient_report
 
 
@@ -16,7 +16,7 @@ class PatientView(QDialog):
     def __init__(self, parent=None, patient_id: int | None = None):
         super().__init__(parent)
         self.patient_id = patient_id
-        self.setWindowTitle(f"Ficha del Paciente - {INSTITUTION['name']}")
+        self.setWindowTitle(f"Ficha del Paciente - {get_institution()['name']}")
         self.setMinimumSize(900, 750)
         self.resize(950, 800)
         self._setup_ui()

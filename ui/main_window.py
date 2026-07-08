@@ -14,7 +14,7 @@ from models.diagnosis import Diagnosis
 from ui.patient_dialog import PatientDialog
 from ui.patient_view import PatientView
 from reports.pdf_generator import generate_patient_report
-from config.institution import INSTITUTION
+from config.institution import get_institution
 from importer import run_import
 from ui.widgets import DateItem
 
@@ -22,7 +22,7 @@ from ui.widgets import DateItem
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle(f"HardForms - {INSTITUTION['name']}")
+        self.setWindowTitle(f"HardForms - {get_institution()['name']}")
         self.setMinimumSize(1100, 650)
         logo_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "resources", "default_logo.png")
         self.setWindowIcon(QIcon(logo_path))
@@ -70,6 +70,10 @@ class MainWindow(QMainWindow):
         act_duplicate = QAction("Duplicar Paciente", self)
         act_duplicate.triggered.connect(self._on_duplicate_patient)
         menu_herramientas.addAction(act_duplicate)
+        menu_herramientas.addSeparator()
+        act_config = QAction("Configurar institución", self)
+        act_config.triggered.connect(self._on_configure_institution)
+        menu_herramientas.addAction(act_config)
         menu_herramientas.addSeparator()
         act_backup = QAction("Crear copia de seguridad", self)
         act_backup.triggered.connect(self._on_export_zip)
@@ -684,6 +688,11 @@ class MainWindow(QMainWindow):
             self._load_patients(self.search_input.text().strip())
         except Exception as e:
             QMessageBox.critical(self, "Error", f"No se pudo importar CSV:\n{e}")
+
+    def _on_configure_institution(self):
+        from ui.setup_dialog import InstitutionSetupDialog
+        dlg = InstitutionSetupDialog(self)
+        dlg.exec()
 
     def _on_clear_database(self):
         reply = QMessageBox.warning(
