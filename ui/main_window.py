@@ -611,6 +611,8 @@ class MainWindow(QMainWindow):
         logo_path = os.path.join(logo_dir, "resources", "default_logo_large.png")
         pixmap = QPixmap(logo_path)
         if not pixmap.isNull():
+            pixmap = pixmap.scaled(180, 180, Qt.AspectRatioMode.KeepAspectRatio,
+                                   Qt.TransformationMode.SmoothTransformation)
             lbl_logo = QLabel()
             lbl_logo.setPixmap(pixmap)
             lbl_logo.setStyleSheet("background: transparent;")
