@@ -495,7 +495,28 @@ class MainWindow(QMainWindow):
         QDesktopServices.openUrl(QUrl.fromLocalFile(tmp.name))
 
     def _on_report_issue(self):
-        QDesktopServices.openUrl(QUrl("mailto:abelgodoy.1802@gmail.com"))
+        import urllib.parse
+        subject = "REPORTE - HardForms"
+        body = (
+            "Describí el problema con el mayor detalle posible:\n\n"
+            "---\n\n"
+            "Versión de HardForms: 1.0\n\n"
+            "Descripción del problema:\n"
+            "(explicá qué ocurre)\n\n"
+            "Pasos para reproducir:\n"
+            "1. \n2. \n3. \n\n"
+            "Comportamiento esperado:\n"
+            "(qué debería pasar)\n\n"
+            "Comportamiento actual:\n"
+            "(qué pasa realmente)\n\n"
+            "¿Ocurre siempre? (Sí / No / A veces):\n\n"
+            "Captura de pantalla:\n"
+            "(adjuntala al mail)\n\n"
+            "Comentarios adicionales:\n"
+        )
+        params = urllib.parse.urlencode({"subject": subject, "body": body})
+        url = QUrl(f"mailto:abelgodoy.1802@gmail.com?{params}")
+        QDesktopServices.openUrl(url)
 
     def _on_about(self):
         QMessageBox.about(
