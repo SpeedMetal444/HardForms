@@ -25,9 +25,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle(f"HardForms - {INSTITUTION['name']}")
         self.setMinimumSize(1100, 650)
         logo_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "resources", "default_logo.png")
-        app_icon = QIcon(logo_path)
-        self.setWindowIcon(app_icon)
-        QApplication.setWindowIcon(app_icon)
+        self.setWindowIcon(QIcon(logo_path))
         self._setup_ui()
         self._load_patients()
 
@@ -526,19 +524,9 @@ class MainWindow(QMainWindow):
     def _on_about(self):
         dlg = QDialog(self)
         dlg.setWindowTitle("Acerca de HardForms")
-        dlg.setMinimumWidth(600)
+        dlg.setMinimumWidth(620)
         layout = QHBoxLayout(dlg)
-
-        # Logo a la derecha
-        logo_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "resources", "default_logo.png")
-        pixmap = QPixmap(logo_path)
-        if not pixmap.isNull():
-            pixmap = pixmap.scaled(160, 160, Qt.AspectRatioMode.KeepAspectRatio,
-                                   Qt.TransformationMode.SmoothTransformation)
-            lbl_logo = QLabel()
-            lbl_logo.setPixmap(pixmap)
-            lbl_logo.setFixedSize(160, 160)
-            layout.addWidget(lbl_logo, alignment=Qt.AlignmentFlag.AlignTop)
+        layout.setContentsMargins(16, 16, 16, 16)
 
         # Texto a la izquierda
         text = QLabel(
@@ -565,8 +553,21 @@ class MainWindow(QMainWindow):
             "© 2026 HardForms. Todos los derechos reservados."
         )
         text.setWordWrap(True)
-        text.setOpenExternalLinks(True)
+        text.setStyleSheet("background: transparent;")
         layout.addWidget(text, 1)
+
+        # Logo a la derecha
+        logo_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "resources", "default_logo.png")
+        pixmap = QPixmap(logo_path)
+        if not pixmap.isNull():
+            pixmap = pixmap.scaled(150, 150, Qt.AspectRatioMode.KeepAspectRatio,
+                                   Qt.TransformationMode.SmoothTransformation)
+            lbl_logo = QLabel()
+            lbl_logo.setPixmap(pixmap)
+            lbl_logo.setFixedSize(150, 150)
+            lbl_logo.setStyleSheet("background: transparent;")
+            layout.addWidget(lbl_logo, alignment=Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignRight)
+
         dlg.exec()
 
     def _on_import(self):

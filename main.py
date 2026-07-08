@@ -13,6 +13,9 @@ def main():
 
     app = QApplication(sys.argv)
     app.setApplicationName("HardForms")
+    icon_path = os.path.join(os.path.dirname(__file__), "resources", "default_logo.png")
+    app_icon = QIcon(icon_path)
+    app.setWindowIcon(app_icon)
 
     window = MainWindow()
     window.show()
