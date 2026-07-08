@@ -47,9 +47,6 @@ class MainWindow(QMainWindow):
         act_import_mdb_csv = QAction("CSV / MDB...", self)
         act_import_mdb_csv.triggered.connect(self._on_import)
         menu_import.addAction(act_import_mdb_csv)
-        act_import_zip = QAction("Restaurar desde ZIP...", self)
-        act_import_zip.triggered.connect(self._on_import_zip)
-        menu_import.addAction(act_import_zip)
 
         menu_export = menu_archivo.addMenu("Exportar")
         act_export_csv = QAction("CSV...", self)
@@ -58,9 +55,6 @@ class MainWindow(QMainWindow):
         act_export_db = QAction("DB...", self)
         act_export_db.triggered.connect(self._on_export_db)
         menu_export.addAction(act_export_db)
-        act_export_zip = QAction("Backup completo (.zip)...", self)
-        act_export_zip.triggered.connect(self._on_export_zip)
-        menu_export.addAction(act_export_zip)
 
         menu_herramientas = menubar.addMenu("Herramientas")
         act_pdf = QAction("Abrir como PDF", self)
@@ -69,6 +63,13 @@ class MainWindow(QMainWindow):
         act_duplicate = QAction("Duplicar Paciente", self)
         act_duplicate.triggered.connect(self._on_duplicate_patient)
         menu_herramientas.addAction(act_duplicate)
+        menu_herramientas.addSeparator()
+        act_backup = QAction("Crear copia de seguridad", self)
+        act_backup.triggered.connect(self._on_export_zip)
+        menu_herramientas.addAction(act_backup)
+        act_restore = QAction("Restaurar copia de seguridad", self)
+        act_restore.triggered.connect(self._on_import_zip)
+        menu_herramientas.addAction(act_restore)
         menu_herramientas.addSeparator()
         act_clear = QAction("Borrar Base de Datos", self)
         act_clear.triggered.connect(self._on_clear_database)
@@ -363,14 +364,29 @@ class MainWindow(QMainWindow):
             QMessageBox.critical(self, "Error", f"No se pudo restaurar:\n{e}")
 
     def _on_about(self):
-        from config.institution import INSTITUTION
         QMessageBox.about(
             self, "Acerca de HardForms",
-            f"<b>HardForms</b><br><br>"
-            f"<b>{INSTITUTION['name']}</b><br>"
-            f"{INSTITUTION.get('address', '')}<br><br>"
-            f"Versión 1.0<br>"
-            f"Sistema de gestión de pacientes e informes médicos."
+            "<b>HardForms</b><br><br>"
+            "Versión 1.0<br><br>"
+            "Sistema de gestión de pacientes e informes médicos desarrollado "
+            "para facilitar el registro, organización y administración de "
+            "información clínica de forma rápida, segura y sencilla.<br><br>"
+            "<b>Características principales</b><br>"
+            "• Gestión completa de pacientes.<br>"
+            "• Generación de informes en PDF.<br>"
+            "• Importación y exportación de datos (CSV y Microsoft Access).<br>"
+            "• Copias de seguridad y restauración de la base de datos.<br>"
+            "• Interfaz intuitiva diseñada para un uso cotidiano en "
+            "consultorios y centros de salud.<br><br>"
+            "<b>Desarrollado por</b><br>"
+            "Abel Godoy<br><br>"
+            "<b>Tecnologías utilizadas</b><br>"
+            "• Python<br>"
+            "• PyQt6<br>"
+            "• SQLite<br>"
+            "• ReportLab<br>"
+            "• PyInstaller<br><br>"
+            "© 2026 HardForms. Todos los derechos reservados."
         )
 
     def _on_import(self):
