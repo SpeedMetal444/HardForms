@@ -4,6 +4,7 @@ __pycache__/
 *.egg-info/
 dist/
 build/
+installer/
 *.spec
 data/*
 !data/institution_config.json
