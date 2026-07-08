@@ -88,6 +88,15 @@ class PatientView(QDialog):
         self.lbl_doctor = QLabel()
         info_form.addRow("Médico operador:", self.lbl_doctor)
 
+        self.lbl_referring_doctor = QLabel()
+        info_form.addRow("Médico derivante:", self.lbl_referring_doctor)
+
+        self.lbl_study_type = QLabel()
+        info_form.addRow("Tipo estudio:", self.lbl_study_type)
+
+        self.lbl_center = QLabel()
+        info_form.addRow("Centro:", self.lbl_center)
+
         scroll_layout.addWidget(info_group)
 
         # Anestesia / Preparación
@@ -141,6 +150,15 @@ class PatientView(QDialog):
         self.img_preview.setMinimumHeight(200)
         self.img_preview.setStyleSheet("background-color: #f0f0f0; border: 1px solid #ccc;")
         img_layout.addWidget(self.img_preview)
+        self.lbl_img_desc = QLabel()
+        self.lbl_img_desc.setWordWrap(True)
+        self.lbl_img_desc.setStyleSheet(
+            "font-size: 12pt; font-weight: bold; color: #1A5276; "
+            "background-color: #D4E6F1; border: 2px solid #2980B9; "
+            "border-radius: 6px; padding: 10px; margin-top: 6px;"
+        )
+        self.lbl_img_desc.setVisible(False)
+        img_layout.addWidget(self.lbl_img_desc)
         scroll_layout.addWidget(img_group)
 
     def _load_patient(self, patient_id: int):
@@ -159,6 +177,9 @@ class PatientView(QDialog):
         self.lbl_address.setText(p.address or "-")
         self.lbl_mrn.setText(p.medical_record_number or "-")
         self.lbl_doctor.setText(p.doctor or "-")
+        self.lbl_referring_doctor.setText(p.referring_doctor or "-")
+        self.lbl_study_type.setText(p.study_type or "-")
+        self.lbl_center.setText(p.center or "-")
         self.lbl_anesthesia_type.setText(p.anesthesia_type or "-")
         self.lbl_drug.setText(p.drug or "-")
         self.lbl_postop.setText(p.postop or "-")
@@ -184,10 +205,14 @@ class PatientView(QDialog):
                     Qt.TransformationMode.SmoothTransformation
                 )
                 self.img_preview.setPixmap(scaled)
-                if first.description:
-                    self.img_preview.setToolTip(first.description)
+            if first.description:
+                self.lbl_img_desc.setText(first.description)
+                self.lbl_img_desc.setVisible(True)
+            else:
+                self.lbl_img_desc.setVisible(False)
         else:
             self.img_preview.setText("(sin imágenes)")
+            self.lbl_img_desc.setVisible(False)
 
     def _on_edit(self):
         from ui.patient_dialog import PatientDialog

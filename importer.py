@@ -70,21 +70,25 @@ def export_mdb_to_csv(table_name, csv_path, mdb_path):
 def bulk_insert(conn, patients_with_diagnoses):
     now = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
     cur = conn.cursor()
+    cols = ("first_name, last_name, dni, birth_date, phone, email, address, "
+            "medical_record_number, insurance, insurance_number, "
+            "doctor, referring_doctor, study_type, center, "
+            "anesthesia_type, drug, postop, anesthesiologist, boston_scale, "
+            "description, attachments, created_at, updated_at")
+    placeholders = ", ".join("?" for _ in range(23))
+    sql = f"INSERT INTO patients ({cols}) VALUES ({placeholders})"
     for p, attachments, diagnoses in patients_with_diagnoses:
         attrs = "\n".join(
             f"{a.path}|||{a.description}" for a in attachments
         )
-        cur.execute("""
-            INSERT INTO patients (first_name, last_name, dni, birth_date, phone, email,
-                                  address, medical_record_number,
-                                  insurance, insurance_number,
-                                  description, attachments,
-                                  created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (p.first_name, p.last_name, p.dni, p.birth_date, p.phone, p.email,
-              p.address, p.medical_record_number,
-              p.insurance, p.insurance_number,
-              p.description, attrs, now, now))
+        cur.execute(sql, (p.first_name, p.last_name, p.dni, p.birth_date,
+                          p.phone, p.email, p.address,
+                          p.medical_record_number,
+                          p.insurance, p.insurance_number,
+                          p.doctor, p.referring_doctor, p.study_type, p.center,
+                          p.anesthesia_type, p.drug, p.postop,
+                          p.anesthesiologist, p.boston_scale,
+                          p.description, attrs, now, now))
         pid = cur.lastrowid
         for d in diagnoses:
             d.patient_id = pid
@@ -118,6 +122,18 @@ def import_estudios(csv_path, conn, progress=None, hc_start=1):
                     sections.append(f"{campo}: {val}")
             description = "\n\n".join(sections)
 
+            # Agregar campos adicionales a la descripción
+            extra_parts = []
+            for campo, label in [("Terapeutica", "Terapéutica"),
+                                  ("Biopsia", "Biopsia"),
+                                  ("Patologo", "Patólogo"),
+                                  ("Internado", "Internado")]:
+                val = (row.get(campo) or "").strip()
+                if val:
+                    extra_parts.append(f"{label}: {val}")
+            if extra_parts:
+                description += "\n\n" + "\n".join(extra_parts)
+
             p = Patient(
                 first_name=first_name,
                 last_name=last_name or paciente[:50],
@@ -127,6 +143,9 @@ def import_estudios(csv_path, conn, progress=None, hc_start=1):
                 insurance=(row.get("Cobertura") or "").strip(),
                 insurance_number=(row.get("AfiliadoNro") or "").strip(),
                 doctor=(row.get("Operador") or "").strip(),
+                referring_doctor=(row.get("EnviaDr") or "").strip(),
+                study_type=(row.get("TipEs") or "").strip(),
+                center=(row.get("Centro") or "").strip(),
                 anesthesia_type=(row.get("Anestesia") or "").strip(),
                 drug=(row.get("Drogas") or "").strip(),
                 postop=(row.get("Recuperacion") or "").strip(),
@@ -200,6 +219,15 @@ def import_ecografias(csv_path, conn, progress=None, hc_start=1):
                 medical_record_number=f"HC-{hc_start + count:05d}",
                 insurance=(row.get("Cobertura") or "").strip(),
                 insurance_number=(row.get("AfiliadoNro") or "").strip(),
+                doctor=(row.get("Operador") or "").strip(),
+                referring_doctor=(row.get("EnviaDr") or "").strip(),
+                study_type=(row.get("TipEs") or "").strip(),
+                center=(row.get("Centro") or "").strip(),
+                anesthesia_type=(row.get("Anestesia") or "").strip(),
+                drug=(row.get("Drogas") or "").strip(),
+                postop=(row.get("Recuperacion") or "").strip(),
+                anesthesiologist=(row.get("Anestesiologo") or "").strip(),
+                boston_scale=(row.get("Boston") or "").strip(),
                 description=description,
             )
 

@@ -5,7 +5,8 @@ __pycache__/
 dist/
 build/
 *.spec
-data/
+data/*
+!data/institution_config.json
 *.db
 *.db-journal
 *.db-wal

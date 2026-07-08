@@ -4,10 +4,10 @@ from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QPushButton, QLineEdit, QTableWidget, QTableWidgetItem,
     QHeaderView, QMessageBox, QFileDialog, QLabel,
-    QStatusBar, QAbstractItemView, QProgressDialog, QMenuBar,
+    QStatusBar, QAbstractItemView, QProgressDialog, QMenuBar, QMenu,
     QApplication, QDialog,
 )
-from PyQt6.QtCore import Qt, QUrl, QSize
+from PyQt6.QtCore import Qt, QUrl, QSize, QPoint
 from PyQt6.QtGui import QAction, QIcon, QPixmap, QDesktopServices
 from database.db import get_all_patients, search_patients, delete_patient, get_patient, get_diagnoses_for_patient, insert_patient, insert_diagnosis
 from models.diagnosis import Diagnosis
@@ -125,6 +125,8 @@ class MainWindow(QMainWindow):
         self.table.horizontalHeader().setStretchLastSection(True)
         self.table.setColumnHidden(0, True)
         self.table.doubleClicked.connect(self._on_view_patient)
+        self.table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.table.customContextMenuRequested.connect(self._on_context_menu)
         layout.addWidget(self.table)
 
         # Floating button bottom-right
@@ -175,6 +177,27 @@ class MainWindow(QMainWindow):
             QMessageBox.information(self, "Seleccionar", "Seleccioná un paciente de la lista.")
             return None
         return int(self.table.item(row, 0).text())
+
+    def _on_context_menu(self, pos: QPoint):
+        row = self.table.rowAt(pos.y())
+        if row < 0:
+            return
+        self.table.selectRow(row)
+        menu = QMenu(self)
+        act_view = QAction("Abrir", self)
+        act_view.triggered.connect(self._on_view_patient)
+        menu.addAction(act_view)
+        act_pdf = QAction("Abrir como PDF", self)
+        act_pdf.triggered.connect(self._on_generate_pdf)
+        menu.addAction(act_pdf)
+        menu.addSeparator()
+        act_edit = QAction("Editar", self)
+        act_edit.triggered.connect(self._on_edit_patient)
+        menu.addAction(act_edit)
+        act_delete = QAction("Eliminar", self)
+        act_delete.triggered.connect(self._on_delete_patient)
+        menu.addAction(act_delete)
+        menu.exec(self.table.viewport().mapToGlobal(pos))
 
     def _on_new_patient(self):
         dialog = PatientDialog(self)
@@ -231,6 +254,9 @@ class MainWindow(QMainWindow):
             insurance=original.insurance,
             insurance_number=original.insurance_number,
             doctor=original.doctor,
+            referring_doctor=original.referring_doctor,
+            study_type=original.study_type,
+            center=original.center,
             anesthesia_type=original.anesthesia_type,
             drug=original.drug,
             postop=original.postop,
@@ -260,8 +286,10 @@ class MainWindow(QMainWindow):
                 writer = csv.writer(f)
                 writer.writerow(["Apellido", "Nombre", "DNI", "Afiliado", "Afiliado Nº",
                                  "Nro. Historia", "FechaNacimiento", "Teléfono", "Email",
-                                 "Domicilio", "Médico", "Anestesia", "Droga",
-                                 "Postoperatorio", "Anestesiólogo", "Boston",
+                                 "Domicilio", "Médico", "Médico Derivante",
+                                 "Tipo Estudio", "Centro",
+                                 "Anestesia", "Droga", "Postoperatorio",
+                                 "Anestesiólogo", "Boston",
                                  "Informe", "Imágenes"])
                 for p in patients:
                     imgs = ";".join(
@@ -270,8 +298,10 @@ class MainWindow(QMainWindow):
                     writer.writerow([
                         p.last_name, p.first_name, p.dni, p.insurance, p.insurance_number,
                         p.medical_record_number, p.birth_date, p.phone, p.email,
-                        p.address, p.doctor, p.anesthesia_type, p.drug,
-                        p.postop, p.anesthesiologist, p.boston_scale,
+                        p.address, p.doctor, p.referring_doctor,
+                        p.study_type, p.center,
+                        p.anesthesia_type, p.drug, p.postop,
+                        p.anesthesiologist, p.boston_scale,
                         p.description, imgs,
                     ])
             QMessageBox.information(self, "Exportado",
@@ -674,6 +704,9 @@ class MainWindow(QMainWindow):
                         insurance=(row.get("Afiliado") or "").strip(),
                         insurance_number=(row.get("Afiliado Nº") or "").strip(),
                         doctor=(row.get("Médico") or "").strip(),
+                        referring_doctor=(row.get("Médico Derivante") or "").strip(),
+                        study_type=(row.get("Tipo Estudio") or "").strip(),
+                        center=(row.get("Centro") or "").strip(),
                         anesthesia_type=(row.get("Anestesia") or "").strip(),
                         drug=(row.get("Droga") or "").strip(),
                         postop=(row.get("Postoperatorio") or "").strip(),

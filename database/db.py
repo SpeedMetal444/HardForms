@@ -4,7 +4,7 @@ from models.patient import Patient, ImageAttachment
 from models.diagnosis import Diagnosis
 from typing import List
 
-DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "patients.db")
+DB_PATH = os.environ.get("HARDFORMS_DB_PATH") or os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "patients.db")
 
 IMG_SEP = "|||"
 
@@ -63,7 +63,8 @@ def init_db():
         conn.execute("ALTER TABLE patients ADD COLUMN insurance_number TEXT")
     except Exception:
         pass
-    for col in ["doctor", "anesthesia_type", "drug", "postop", "anesthesiologist", "boston_scale"]:
+    for col in ["doctor", "anesthesia_type", "drug", "postop", "anesthesiologist", "boston_scale",
+                "referring_doctor", "study_type", "center"]:
         try:
             conn.execute(f"ALTER TABLE patients ADD COLUMN {col} TEXT")
         except Exception:
@@ -91,10 +92,11 @@ def get_next_medical_record_number() -> str:
 PATIENT_COLS = (
     "first_name, last_name, dni, birth_date, phone, email, "
     "address, medical_record_number, insurance, insurance_number, "
-    "doctor, anesthesia_type, drug, postop, anesthesiologist, boston_scale, "
+    "doctor, referring_doctor, study_type, center, "
+    "anesthesia_type, drug, postop, anesthesiologist, boston_scale, "
     "description, attachments"
 )
-PATIENT_PLACEHOLDERS = ", ".join("?" for _ in range(18))
+PATIENT_PLACEHOLDERS = ", ".join("?" for _ in range(21))
 
 
 def insert_patient(p: Patient) -> int:
@@ -104,7 +106,8 @@ def insert_patient(p: Patient) -> int:
         VALUES ({PATIENT_PLACEHOLDERS})
     """, (p.first_name, p.last_name, p.dni, p.birth_date, p.phone, p.email,
           p.address, p.medical_record_number, p.insurance, p.insurance_number,
-          p.doctor, p.anesthesia_type, p.drug, p.postop, p.anesthesiologist, p.boston_scale,
+          p.doctor, p.referring_doctor, p.study_type, p.center,
+          p.anesthesia_type, p.drug, p.postop, p.anesthesiologist, p.boston_scale,
           p.description, _attachments_to_str(p.attachments)))
     conn.commit()
     conn.close()
@@ -117,14 +120,16 @@ def update_patient(p: Patient):
         UPDATE patients SET first_name=?, last_name=?, dni=?, birth_date=?, phone=?,
                             email=?, address=?, medical_record_number=?,
                             insurance=?, insurance_number=?,
-                            doctor=?, anesthesia_type=?, drug=?, postop=?,
+                            doctor=?, referring_doctor=?, study_type=?, center=?,
+                            anesthesia_type=?, drug=?, postop=?,
                             anesthesiologist=?, boston_scale=?,
                             description=?, attachments=?,
                             updated_at=datetime('now','localtime')
         WHERE id=?
     """, (p.first_name, p.last_name, p.dni, p.birth_date, p.phone, p.email,
           p.address, p.medical_record_number, p.insurance, p.insurance_number,
-          p.doctor, p.anesthesia_type, p.drug, p.postop, p.anesthesiologist, p.boston_scale,
+          p.doctor, p.referring_doctor, p.study_type, p.center,
+          p.anesthesia_type, p.drug, p.postop, p.anesthesiologist, p.boston_scale,
           p.description, _attachments_to_str(p.attachments), p.id))
     conn.commit()
     conn.close()
@@ -216,6 +221,9 @@ def _row_to_patient(row: sqlite3.Row) -> Patient:
         insurance=row["insurance"] or "",
         insurance_number=row["insurance_number"] or "",
         doctor=row["doctor"] or "",
+        referring_doctor=row["referring_doctor"] or "",
+        study_type=row["study_type"] or "",
+        center=row["center"] or "",
         anesthesia_type=row["anesthesia_type"] or "",
         drug=row["drug"] or "",
         postop=row["postop"] or "",

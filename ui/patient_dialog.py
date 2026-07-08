@@ -97,6 +97,18 @@ class PatientDialog(QDialog):
 
         scroll_layout.addLayout(form)
 
+        # Médico derivante / Estudio
+        self.input_referring_doctor = self._make_combo("referring_doctor", "Médico derivante")
+        form.addRow("Médico derivante:", self.input_referring_doctor)
+
+        self.input_study_type = QLineEdit()
+        self.input_study_type.setPlaceholderText("Tipo de estudio")
+        form.addRow("Tipo estudio:", self.input_study_type)
+
+        self.input_center = QLineEdit()
+        self.input_center.setPlaceholderText("Centro")
+        form.addRow("Centro:", self.input_center)
+
         # Anestesia / Preparación
         anes_group = QGroupBox("Anestesia / Preparación")
         anes_layout = QFormLayout(anes_group)
@@ -250,6 +262,9 @@ class PatientDialog(QDialog):
         self.input_address.setText(p.address)
         self.input_mrn.setText(p.medical_record_number)
         self.input_doctor.setCurrentText(p.doctor)
+        self.input_referring_doctor.setCurrentText(p.referring_doctor)
+        self.input_study_type.setText(p.study_type)
+        self.input_center.setText(p.center)
         if p.anesthesia_type == "General":
             self.rb_tipo_general.setChecked(True)
         elif p.anesthesia_type == "Local":
@@ -420,6 +435,9 @@ class PatientDialog(QDialog):
             insurance=self.input_insurance.text().strip(),
             insurance_number=self.input_insurance_number.text().strip(),
             doctor=self.input_doctor.currentText().strip(),
+            referring_doctor=self.input_referring_doctor.currentText().strip(),
+            study_type=self.input_study_type.text().strip(),
+            center=self.input_center.text().strip(),
             anesthesia_type="General" if self.rb_tipo_general.isChecked() else "Local",
             drug=self.input_drug.text().strip(),
             postop=self.input_postop.text().strip(),
