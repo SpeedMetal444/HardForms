@@ -1,10 +1,16 @@
 import sqlite3
 import os
+import sys
 from models.patient import Patient, ImageAttachment
 from models.diagnosis import Diagnosis
 from typing import List
 
-DB_PATH = os.environ.get("HARDFORMS_DB_PATH") or os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "patients.db")
+def _data_dir():
+    if getattr(sys, 'frozen', False):
+        return os.path.join(os.path.dirname(sys.executable), "data")
+    return os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
+
+DB_PATH = os.environ.get("HARDFORMS_DB_PATH") or os.path.join(_data_dir(), "patients.db")
 
 IMG_SEP = "|||"
 

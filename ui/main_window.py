@@ -1,4 +1,5 @@
 import os
+import sys
 import tempfile
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
@@ -11,6 +12,7 @@ from PyQt6.QtCore import Qt, QUrl, QSize, QPoint
 from PyQt6.QtGui import QAction, QIcon, QPixmap, QDesktopServices
 from database.db import get_all_patients, search_patients, delete_patient, get_patient, get_diagnoses_for_patient, insert_patient, insert_diagnosis
 from models.diagnosis import Diagnosis
+from models.patient import Patient
 from ui.patient_dialog import PatientDialog
 from ui.patient_view import PatientView
 from reports.pdf_generator import generate_patient_report
@@ -24,7 +26,8 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle(f"HardForms - {get_institution()['name']}")
         self.setMinimumSize(1100, 650)
-        logo_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "resources", "default_logo.png")
+        logo_dir = sys._MEIPASS if getattr(sys, 'frozen', False) else os.path.dirname(os.path.dirname(__file__))
+        logo_path = os.path.join(logo_dir, "resources", "default_logo.png")
         self.setWindowIcon(QIcon(logo_path))
         self._setup_ui()
         self._load_patients()
@@ -591,7 +594,8 @@ class MainWindow(QMainWindow):
         layout.addWidget(text, 1)
 
         # Logo a la derecha
-        logo_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "resources", "default_logo.png")
+        logo_dir = sys._MEIPASS if getattr(sys, 'frozen', False) else os.path.dirname(os.path.dirname(__file__))
+        logo_path = os.path.join(logo_dir, "resources", "default_logo.png")
         pixmap = QPixmap(logo_path)
         if not pixmap.isNull():
             pixmap = pixmap.scaled(150, 150, Qt.AspectRatioMode.KeepAspectRatio,
@@ -671,17 +675,30 @@ class MainWindow(QMainWindow):
         from models.patient import ImageAttachment
         from database.db import get_next_medical_record_number
 
+        progress = QProgressDialog("Importando CSV...", "Cancelar", 0, 0, self)
+        progress.setWindowTitle("Importar")
+        progress.setMinimumDuration(0)
+        progress.show()
+        QApplication.processEvents()
+
         count = 0
+        cancelled = False
         try:
-            with open(file_path, encoding="utf-8-sig") as f:
+            try:
+                f = open(file_path, encoding="utf-8-sig")
+            except UnicodeDecodeError:
+                f = open(file_path, encoding="cp1252")
+            with f:
                 reader = csv.DictReader(f)
                 for row in reader:
+                    if progress.wasCanceled():
+                        cancelled = True
+                        break
                     first = (row.get("Nombre") or "").strip()
                     last = (row.get("Apellido") or "").strip()
                     if not first or not last:
                         continue
 
-                    # Parse imágenes
                     attachments = []
                     imgs_raw = (row.get("Imágenes") or "").strip()
                     if imgs_raw:
@@ -717,9 +734,18 @@ class MainWindow(QMainWindow):
                     )
                     insert_patient(p)
                     count += 1
-            QMessageBox.information(self, "Importado", f"{count} pacientes importados.")
+                    if count % 10 == 0:
+                        progress.setLabelText(f"Importando... {count} pacientes")
+                        QApplication.processEvents()
+            progress.close()
+            if cancelled:
+                QMessageBox.information(self, "Importación cancelada",
+                    f"Se importaron {count} pacientes antes de cancelar.")
+            else:
+                QMessageBox.information(self, "Importado", f"{count} pacientes importados.")
             self._load_patients(self.search_input.text().strip())
         except Exception as e:
+            progress.close()
             QMessageBox.critical(self, "Error", f"No se pudo importar CSV:\n{e}")
 
     def _on_configure_institution(self):

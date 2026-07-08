@@ -6,8 +6,14 @@ o editando este archivo antes de compilar el instalador.
 """
 
 import os
+import sys
 
-_CONFIG_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
+def _data_dir():
+    if getattr(sys, 'frozen', False):
+        return os.path.join(os.path.dirname(sys.executable), "data")
+    return os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
+
+_CONFIG_DIR = _data_dir()
 _CONFIG_FILE = os.path.join(_CONFIG_DIR, "institution_config.json")
 
 DEFAULT_INSTITUTION = {
@@ -27,11 +33,12 @@ DEFAULT_INSTITUTION = {
 def _load_config():
     import json
     if os.path.isfile(_CONFIG_FILE):
-        try:
-            with open(_CONFIG_FILE, encoding="utf-8") as f:
-                return json.load(f)
-        except Exception:
-            pass
+        for enc in ("utf-8", "cp1252"):
+            try:
+                with open(_CONFIG_FILE, encoding=enc) as f:
+                    return json.load(f)
+            except Exception:
+                continue
     return dict(DEFAULT_INSTITUTION)
 
 
@@ -42,10 +49,15 @@ def _save_config(cfg):
         json.dump(cfg, f, indent=2, ensure_ascii=False)
 
 
+def _resource_dir():
+    if getattr(sys, 'frozen', False):
+        return sys._MEIPASS
+    return os.path.dirname(os.path.dirname(__file__))
+
+
 def get_institution():
     cfg = _load_config()
-    # resolver rutas relativas
-    base = os.path.dirname(os.path.dirname(__file__))
+    base = _resource_dir()
     for key in ("logo_path", "default_logo"):
         val = cfg.get(key, "")
         if val and not os.path.isabs(val):
@@ -54,8 +66,7 @@ def get_institution():
 
 
 def save_institution(cfg):
-    # guardar rutas como relativas
-    base = os.path.dirname(os.path.dirname(__file__))
+    base = _resource_dir()
     for key in ("logo_path", "default_logo"):
         val = cfg.get(key, "")
         if val and val.startswith(base):

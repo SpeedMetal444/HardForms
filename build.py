@@ -33,6 +33,8 @@ cmd = [
     "--add-data", f"ui{os.pathsep}ui",
     "--add-data", f"data{os.pathsep}data",
 ]
+if os.path.isfile("export_table.vbs"):
+    cmd.extend(["--add-data", f"export_table.vbs{os.pathsep}."])
 if os.path.isfile(ICON_DST):
     cmd.extend(["--icon", ICON_DST])
 cmd.append(MAIN_SCRIPT)
@@ -43,6 +45,6 @@ os.system(" ".join(cmd))
 exe = os.path.join("dist", f"{APP_NAME}.exe")
 if os.path.isfile(exe):
     sz = os.path.getsize(exe)
-    print(f"✓ {exe}  ({sz / 1024 / 1024:.1f} MB)")
+    print(f"[OK] {exe}  ({sz / 1024 / 1024:.1f} MB)")
 else:
-    print("✗ Error: no se generó el ejecutable.")
+    print("[ERROR] no se genero el ejecutable.")

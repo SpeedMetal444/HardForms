@@ -22,7 +22,7 @@ SolidCompression=yes
 WizardStyle=modern
 PrivilegesRequired=admin
 UninstallDisplayIcon={app}\resources\icon.ico
-ChangesEnvironment=yes
+WizardSizePercent=120
 
 [Languages]
 Name: "spanish"; MessagesFile: "compiler:Languages\Spanish.isl"
@@ -31,8 +31,7 @@ Name: "spanish"; MessagesFile: "compiler:Languages\Spanish.isl"
 Name: "desktopicon"; Description: "Crear acceso directo en el escritorio"; GroupDescription: "Accesos directos:"
 
 [Files]
-Source: "dist\HardForms\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
-Source: "dist\HardForms\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "dist\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
 Source: "resources\default_logo.png"; DestDir: "{app}\resources"; Flags: ignoreversion
 Source: "resources\default_logo_large.png"; DestDir: "{app}\resources"; Flags: ignoreversion
 
@@ -47,7 +46,7 @@ Filename: "{app}\{#MyAppExeName}"; Description: "Ejecutar {#MyAppName}"; Flags: 
 [Code]
 var
   CustomPage: TWizardPage;
-  edtName, edtAddress, edtPhone, edtEmail, edtWeb, edtMP, edtDoctor: TEdit;
+  edtName, edtAddress, edtPhone, edtDoctor: TEdit;
 
 procedure InitializeWizard;
 var
@@ -55,7 +54,7 @@ var
   y: Integer;
 begin
   CustomPage := CreateCustomPage(wpSelectTasks, 'Configurar institución',
-    'Ingresá los datos de la institución. El logo podés cambiarlo después desde el menú Herramientas → Configurar institución.');
+    'Completá los datos de la institución (podés cambiarlos después desde Herramientas → Configurar institución).');
 
   y := 8;
 
@@ -76,7 +75,6 @@ begin
   edtAddress := TEdit.Create(CustomPage);
   edtAddress.Parent := CustomPage.Surface;
   edtAddress.Top := y + 16; edtAddress.Left := 8; edtAddress.Width := 400;
-  edtAddress.Text := 'Dirección del centro';
 
   y := edtAddress.Top + edtAddress.Height + 8;
   lbl := TLabel.Create(CustomPage);
@@ -86,39 +84,8 @@ begin
   edtPhone := TEdit.Create(CustomPage);
   edtPhone.Parent := CustomPage.Surface;
   edtPhone.Top := y + 16; edtPhone.Left := 8; edtPhone.Width := 400;
-  edtPhone.Text := '+54 11 1234-5678';
 
   y := edtPhone.Top + edtPhone.Height + 8;
-  lbl := TLabel.Create(CustomPage);
-  lbl.Parent := CustomPage.Surface;
-  lbl.Caption := 'Email:';
-  lbl.Top := y; lbl.Left := 8;
-  edtEmail := TEdit.Create(CustomPage);
-  edtEmail.Parent := CustomPage.Surface;
-  edtEmail.Top := y + 16; edtEmail.Left := 8; edtEmail.Width := 400;
-  edtEmail.Text := 'contacto@micentro.com';
-
-  y := edtEmail.Top + edtEmail.Height + 8;
-  lbl := TLabel.Create(CustomPage);
-  lbl.Parent := CustomPage.Surface;
-  lbl.Caption := 'Sitio web:';
-  lbl.Top := y; lbl.Left := 8;
-  edtWeb := TEdit.Create(CustomPage);
-  edtWeb.Parent := CustomPage.Surface;
-  edtWeb.Top := y + 16; edtWeb.Left := 8; edtWeb.Width := 400;
-  edtWeb.Text := 'www.micentro.com';
-
-  y := edtWeb.Top + edtWeb.Height + 8;
-  lbl := TLabel.Create(CustomPage);
-  lbl.Parent := CustomPage.Surface;
-  lbl.Caption := 'Matrícula / MP:';
-  lbl.Top := y; lbl.Left := 8;
-  edtMP := TEdit.Create(CustomPage);
-  edtMP.Parent := CustomPage.Surface;
-  edtMP.Top := y + 16; edtMP.Left := 8; edtMP.Width := 400;
-  edtMP.Text := 'MP 12345';
-
-  y := edtMP.Top + edtMP.Height + 8;
   lbl := TLabel.Create(CustomPage);
   lbl.Parent := CustomPage.Surface;
   lbl.Caption := 'Nombre del médico / director:';
@@ -126,25 +93,29 @@ begin
   edtDoctor := TEdit.Create(CustomPage);
   edtDoctor.Parent := CustomPage.Surface;
   edtDoctor.Top := y + 16; edtDoctor.Left := 8; edtDoctor.Width := 400;
-  edtDoctor.Text := 'Juan Pérez';
 end;
 
 procedure WriteInstitutionConfig(const AppDir: string);
 var
+  dataDir: string;
   jsonPath: string;
   jsonStr: string;
 begin
-  jsonPath := AddBackslash(AppDir) + 'data\institution_config.json';
+  dataDir := AddBackslash(AppDir) + 'data';
+  if not DirExists(dataDir) then
+    CreateDir(dataDir);
+  jsonPath := dataDir + '\institution_config.json';
 
   jsonStr := '{' + #13#10 +
     '  "name": "' + edtName.Text + '",' + #13#10 +
     '  "address": "' + edtAddress.Text + '",' + #13#10 +
     '  "phone": "' + edtPhone.Text + '",' + #13#10 +
-    '  "email": "' + edtEmail.Text + '",' + #13#10 +
-    '  "web": "' + edtWeb.Text + '",' + #13#10 +
-    '  "mp_number": "' + edtMP.Text + '",' + #13#10 +
+    '  "email": "",' + #13#10 +
+    '  "web": "",' + #13#10 +
+    '  "mp_number": "",' + #13#10 +
     '  "doctor_name": "' + edtDoctor.Text + '",' + #13#10 +
     '  "logo_path": "",' + #13#10 +
+    '  "default_logo": "resources\\default_logo.png",' + #13#10 +
     '  "footer_text": "Documento generado por HardForms © 2026"' + #13#10 +
     '}';
 
@@ -152,9 +123,26 @@ begin
 end;
 
 procedure CurStepChanged(CurStep: TSetupStep);
+var
+  configPath: string;
 begin
   if CurStep = ssPostInstall then
   begin
     WriteInstitutionConfig(ExpandConstant('{app}'));
+    configPath := ExpandConstant('{app}') + '\data\institution_config.json';
+    if not FileExists(configPath) then
+      MsgBox('ERROR: No se pudo crear el archivo de configuración en:'#13 +
+        configPath, mbError, MB_OK);
+    MsgBox('HardForms instalado correctamente.'#13#13 +
+      'Para agregar imágenes a los pacientes, usá los botones'#13 +
+      '"Agregar imagen" en la ventana de edición del paciente.'#13#13 +
+      'Podés cambiar el logo y más datos desde:'#13 +
+      '  Herramientas → Configurar institución'#13#13 +
+      'Los datos se guardan automáticamente en:'#13 +
+      '  ' + ExpandConstant('{app}') + '\data'#13 +
+      'Hacé backups periódicos desde:'#13 +
+      '  Herramientas → Backup'#13 +
+      '¡Gracias por usar HardForms!',
+      mbInformation, MB_OK);
   end;
 end;

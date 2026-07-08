@@ -6,14 +6,25 @@ from database.db import init_db
 from ui.main_window import MainWindow
 
 
+def _data_dir():
+    if getattr(sys, 'frozen', False):
+        return os.path.join(os.path.dirname(sys.executable), "data")
+    return os.path.join(os.path.dirname(__file__), "data")
+
+
+def _resource_dir():
+    if getattr(sys, 'frozen', False):
+        return sys._MEIPASS
+    return os.path.dirname(__file__)
+
+
 def main():
-    # Ensure data directory exists
-    os.makedirs(os.path.join(os.path.dirname(__file__), "data"), exist_ok=True)
+    os.makedirs(_data_dir(), exist_ok=True)
     init_db()
 
     app = QApplication(sys.argv)
     app.setApplicationName("HardForms")
-    icon_path = os.path.join(os.path.dirname(__file__), "resources", "default_logo.png")
+    icon_path = os.path.join(_resource_dir(), "resources", "default_logo.png")
     app_icon = QIcon(icon_path)
     app.setWindowIcon(app_icon)
 

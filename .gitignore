@@ -14,3 +14,7 @@ data/*
 *.pdf
 .DS_Store
 thumbs.db
+resources/icon.ico
+export_mdb*.vbs
+import_access.py
+run_import.py
