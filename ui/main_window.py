@@ -608,15 +608,13 @@ class MainWindow(QMainWindow):
 
         # Logo a la derecha
         logo_dir = sys._MEIPASS if getattr(sys, 'frozen', False) else os.path.dirname(os.path.dirname(__file__))
-        logo_path = os.path.join(logo_dir, "resources", "default_logo.png")
+        logo_path = os.path.join(logo_dir, "resources", "default_logo_large.png")
         pixmap = QPixmap(logo_path)
         if not pixmap.isNull():
-            pixmap = pixmap.scaled(150, 150, Qt.AspectRatioMode.KeepAspectRatio,
-                                   Qt.TransformationMode.SmoothTransformation)
             lbl_logo = QLabel()
             lbl_logo.setPixmap(pixmap)
-            lbl_logo.setFixedSize(150, 150)
             lbl_logo.setStyleSheet("background: transparent;")
+            lbl_logo.setFixedSize(pixmap.width(), pixmap.height())
             layout.addWidget(lbl_logo, alignment=Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignRight)
 
         dlg.exec()
