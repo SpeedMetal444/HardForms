@@ -1,12 +1,12 @@
 {
-  "name": "Mi Centro Médico",
-  "address": "Dirección del centro",
-  "phone": "+54 11 1234-5678",
-  "email": "contacto@micentro.com",
-  "web": "www.micentro.com",
-  "mp_number": "MP 12345",
-  "doctor_name": "Juan Pérez",
-  "logo_path": "",
-  "watermark_path": "",
+  "name": "HardBrick",
+  "address": "9 de Jlio 1877",
+  "phone": "+54 3795 320959",
+  "email": "abelgodoy.1802@gmail.com",
+  "web": "www.hardbrick.com.ar",
+  "mp_number": "MP 790142",
+  "doctor_name": "Abel Godoy",
+  "logo_path": "Z:/Pantera/Imagenes/default_logo.png",
+  "watermark_path": "Z:/Pantera/Imagenes/default_logo.png",
   "footer_text": "Documento generado por HardForms © 2026"
 }

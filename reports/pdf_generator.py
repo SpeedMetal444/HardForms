@@ -46,14 +46,13 @@ def _header_footer(canvas, doc):
         try:
             img = PILImage.open(wm_path).convert("RGBA")
             r, g, b, a = img.split()
-            a = a.point(lambda x: int(x * 0.08))
+            a = a.point(lambda x: int(x * 0.12))
             img = PILImage.merge("RGBA", (r, g, b, a))
             buf = BytesIO()
             img.save(buf, format="PNG")
             buf.seek(0)
             reader = ImageReader(buf)
-            w, h = A4
-            canvas.drawImage(reader, x=2*cm, y=3*cm, width=w-4*cm, height=h-6*cm,
+            canvas.drawImage(reader, x=10.5*cm, y=18*cm, width=8*cm, height=10*cm,
                              preserveAspectRatio=True, mask='auto')
         except Exception:
             pass
