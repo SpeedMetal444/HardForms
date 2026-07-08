@@ -17,9 +17,27 @@ from config.institution import get_institution
 def _header_footer(canvas, doc):
     inst = get_institution()
     canvas.saveState()
+
+    # Watermark: logo institucional transparente al fondo
+    logo_path = inst.get("logo_path", "")
+    if not os.path.isfile(logo_path):
+        logo_path = inst.get("default_logo", "")
+    if os.path.isfile(logo_path):
+        try:
+            w, h = A4
+            canvas.setFillAlpha(8)
+            canvas.drawImage(logo_path, x=2*cm, y=3*cm, width=w-4*cm, height=h-6*cm,
+                             preserveAspectRatio=True, mask='auto')
+            canvas.setFillAlpha(100)
+        except Exception:
+            pass
+
+    # Header line
     canvas.setStrokeColor(HexColor("#2980B9"))
     canvas.setLineWidth(0.5)
     canvas.line(2.5 * cm, A4[1] - 1.5 * cm, A4[0] - 2.5 * cm, A4[1] - 1.5 * cm)
+
+    # Footer
     canvas.setFont("Helvetica", 7)
     canvas.setFillColor(HexColor("#95A5A6"))
     canvas.drawCentredString(A4[0] / 2, 1.2 * cm, inst["name"])
@@ -90,10 +108,10 @@ def generate_patient_report(patient_id: int, output_path: str):
 
     styles = getSampleStyleSheet()
     styles.add(ParagraphStyle("InstName", parent=styles["Heading1"],
-        fontSize=20, textColor=HexColor("#2C3E50"), spaceAfter=2 * mm,
+        fontSize=20, textColor=HexColor("#2980B9"), spaceAfter=2 * mm,
         alignment=TA_CENTER, fontName="Helvetica-Bold"))
     styles.add(ParagraphStyle("InstInfo", parent=styles["Normal"],
-        fontSize=10, textColor=HexColor("#7F8C8D"),
+        fontSize=10, textColor=HexColor("#34495E"),
         alignment=TA_CENTER, spaceAfter=1 * mm, leading=13))
     styles.add(ParagraphStyle("ReportTitle", parent=styles["Heading2"],
         fontSize=16, textColor=HexColor("#2980B9"),

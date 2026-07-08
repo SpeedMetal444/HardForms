@@ -145,20 +145,13 @@ class PatientView(QDialog):
         # Images
         img_group = QGroupBox("Imágenes adjuntas")
         img_layout = QVBoxLayout(img_group)
-        self.img_preview = QLabel("(sin imágenes)")
-        self.img_preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.img_preview.setMinimumHeight(200)
-        self.img_preview.setStyleSheet("background-color: #f0f0f0; border: 1px solid #ccc;")
-        img_layout.addWidget(self.img_preview)
-        self.lbl_img_desc = QLabel()
-        self.lbl_img_desc.setWordWrap(True)
-        self.lbl_img_desc.setStyleSheet(
-            "font-size: 12pt; font-weight: bold; color: #1A5276; "
-            "background-color: #D4E6F1; border: 2px solid #2980B9; "
-            "border-radius: 6px; padding: 10px; margin-top: 6px;"
-        )
-        self.lbl_img_desc.setVisible(False)
-        img_layout.addWidget(self.lbl_img_desc)
+        self.img_scroll = QScrollArea()
+        self.img_scroll.setWidgetResizable(True)
+        self.img_scroll.setMinimumHeight(250)
+        self.img_scroll_content = QWidget()
+        self.img_grid = QVBoxLayout(self.img_scroll_content)
+        self.img_scroll.setWidget(self.img_scroll_content)
+        img_layout.addWidget(self.img_scroll)
         scroll_layout.addWidget(img_group)
 
     def _load_patient(self, patient_id: int):
@@ -196,23 +189,48 @@ class PatientView(QDialog):
         self.diag_table.resizeColumnsToContents()
 
         # Images
+        for i in reversed(range(self.img_grid.count())):
+            widget = self.img_grid.itemAt(i).widget()
+            if widget:
+                widget.setParent(None)
+
         if p.attachments:
-            first = p.attachments[0]
-            pixmap = QPixmap(first.path)
-            if not pixmap.isNull():
-                scaled = pixmap.scaled(
-                    600, 300, Qt.AspectRatioMode.KeepAspectRatio,
-                    Qt.TransformationMode.SmoothTransformation
-                )
-                self.img_preview.setPixmap(scaled)
-            if first.description:
-                self.lbl_img_desc.setText(first.description)
-                self.lbl_img_desc.setVisible(True)
-            else:
-                self.lbl_img_desc.setVisible(False)
+            row_layout = None
+            for idx, att in enumerate(p.attachments):
+                if idx % 2 == 0:
+                    row_layout = QHBoxLayout()
+                    self.img_grid.addLayout(row_layout)
+                cell = QVBoxLayout()
+                pixmap = QPixmap(att.path)
+                label = QLabel()
+                if not pixmap.isNull():
+                    scaled = pixmap.scaled(
+                        280, 200, Qt.AspectRatioMode.KeepAspectRatio,
+                        Qt.TransformationMode.SmoothTransformation
+                    )
+                    label.setPixmap(scaled)
+                else:
+                    label.setText(f"(no encontrada: {os.path.basename(att.path)})")
+                label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                label.setStyleSheet("background-color: #f0f0f0; border: 1px solid #ccc;")
+                cell.addWidget(label)
+                if att.description:
+                    desc = QLabel(att.description)
+                    desc.setWordWrap(True)
+                    desc.setStyleSheet(
+                        "font-size: 12pt; font-weight: bold; color: #1A5276; "
+                        "background-color: #D4E6F1; border: 2px solid #2980B9; "
+                        "border-radius: 6px; padding: 10px; margin-top: 6px;"
+                    )
+                    cell.addWidget(desc)
+                cell.addStretch()
+                row_layout.addLayout(cell)
         else:
-            self.img_preview.setText("(sin imágenes)")
-            self.lbl_img_desc.setVisible(False)
+            empty = QLabel("(sin imágenes)")
+            empty.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            empty.setMinimumHeight(100)
+            empty.setStyleSheet("background-color: #f0f0f0; border: 1px solid #ccc; color: #888;")
+            self.img_grid.addWidget(empty)
 
     def _on_edit(self):
         from ui.patient_dialog import PatientDialog
