@@ -102,7 +102,7 @@ QHeaderView::section:hover {
 
 /* ----- GroupBox ----- */
 QGroupBox {
-    background-color: #252538;
+    background-color: transparent;
     border: 1px solid #3D3D50;
     border-radius: 6px;
     margin-top: 14px;
@@ -114,9 +114,11 @@ QGroupBox {
 QGroupBox::title {
     subcontrol-origin: margin;
     subcontrol-position: top left;
-    padding: 4px 10px;
+    padding: 2px 10px;
     color: #5B9BD5;
-    font-size: 13px;
+    font-size: 12px;
+    background-color: #1E1E2E;
+    border-radius: 3px;
 }
 
 /* ----- ScrollArea ----- */
