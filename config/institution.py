@@ -25,6 +25,7 @@ DEFAULT_INSTITUTION = {
     "mp_number": "",
     "doctor_name": "",
     "logo_path": "",
+    "watermark_path": "",
     "default_logo": "resources/default_logo.png",
     "footer_text": "Documento generado por HardForms © 2026",
 }
@@ -58,7 +59,7 @@ def _resource_dir():
 def get_institution():
     cfg = _load_config()
     base = _resource_dir()
-    for key in ("logo_path", "default_logo"):
+    for key in ("logo_path", "watermark_path", "default_logo"):
         val = cfg.get(key, "")
         if val and not os.path.isabs(val):
             cfg[key] = os.path.join(base, val)
@@ -67,7 +68,7 @@ def get_institution():
 
 def save_institution(cfg):
     base = _resource_dir()
-    for key in ("logo_path", "default_logo"):
+    for key in ("logo_path", "watermark_path", "default_logo"):
         val = cfg.get(key, "")
         if val and val.startswith(base):
             cfg[key] = os.path.relpath(val, base)

@@ -1,4 +1,5 @@
 import os
+from io import BytesIO
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm, cm
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -9,6 +10,8 @@ from reportlab.platypus import (
 )
 from reportlab.lib import colors
 from reportlab.lib.colors import HexColor
+from reportlab.lib.utils import ImageReader
+from PIL import Image as PILImage
 
 from database.db import get_patient, get_diagnoses_for_patient
 from config.institution import get_institution
@@ -18,17 +21,26 @@ def _header_footer(canvas, doc):
     inst = get_institution()
     canvas.saveState()
 
-    # Watermark: logo institucional transparente al fondo
-    logo_path = inst.get("logo_path", "")
-    if not os.path.isfile(logo_path):
-        logo_path = inst.get("default_logo", "")
-    if os.path.isfile(logo_path):
+    # Watermark: logo transparente al fondo
+    wm_path = inst.get("watermark_path", "")
+    if not os.path.isfile(wm_path):
+        logo_path = inst.get("logo_path", "")
+        if not os.path.isfile(logo_path):
+            logo_path = inst.get("default_logo", "")
+        wm_path = logo_path
+    if os.path.isfile(wm_path):
         try:
+            img = PILImage.open(wm_path).convert("RGBA")
+            r, g, b, a = img.split()
+            a = a.point(lambda x: int(x * 0.08))
+            img = PILImage.merge("RGBA", (r, g, b, a))
+            buf = BytesIO()
+            img.save(buf, format="PNG")
+            buf.seek(0)
+            reader = ImageReader(buf)
             w, h = A4
-            canvas.setFillAlpha(8)
-            canvas.drawImage(logo_path, x=2*cm, y=3*cm, width=w-4*cm, height=h-6*cm,
+            canvas.drawImage(reader, x=2*cm, y=3*cm, width=w-4*cm, height=h-6*cm,
                              preserveAspectRatio=True, mask='auto')
-            canvas.setFillAlpha(100)
         except Exception:
             pass
 

@@ -115,6 +115,7 @@ begin
     '  "mp_number": "",' + #13#10 +
     '  "doctor_name": "' + edtDoctor.Text + '",' + #13#10 +
     '  "logo_path": "",' + #13#10 +
+    '  "watermark_path": "",' + #13#10 +
     '  "default_logo": "resources\\default_logo.png",' + #13#10 +
     '  "footer_text": "Documento generado por HardForms © 2026"' + #13#10 +
     '}';

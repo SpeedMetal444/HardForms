@@ -55,6 +55,20 @@ class InstitutionSetupDialog(QDialog):
         logo_layout.addWidget(btn_clear_logo)
         form.addRow("Logo institucional:", logo_layout)
 
+        # Marca de agua
+        wm_layout = QHBoxLayout()
+        self._watermark_path = self._cfg.get("watermark_path", "")
+        self.lbl_watermark_path = QLabel(self._watermark_path if self._watermark_path else "(ninguno)")
+        self.lbl_watermark_path.setStyleSheet("color: #7F8C8D;")
+        btn_wm = QPushButton("Seleccionar imagen...")
+        btn_wm.clicked.connect(self._on_select_watermark)
+        btn_clear_wm = QPushButton("Quitar")
+        btn_clear_wm.clicked.connect(self._on_clear_watermark)
+        wm_layout.addWidget(self.lbl_watermark_path, 1)
+        wm_layout.addWidget(btn_wm)
+        wm_layout.addWidget(btn_clear_wm)
+        form.addRow("Imagen marca de agua:", wm_layout)
+
         layout.addLayout(form)
         layout.addSpacing(12)
 
@@ -89,6 +103,18 @@ class InstitutionSetupDialog(QDialog):
         self.preview.clear()
         self.preview.setText("Sin logo")
 
+    def _on_select_watermark(self):
+        path, _ = QFileDialog.getOpenFileName(
+            self, "Seleccionar imagen para marca de agua", "", "Imágenes (*.png *.jpg *.jpeg *.bmp)"
+        )
+        if path:
+            self._watermark_path = path
+            self.lbl_watermark_path.setText(path)
+
+    def _on_clear_watermark(self):
+        self._watermark_path = ""
+        self.lbl_watermark_path.setText("(ninguno)")
+
     def _update_preview(self):
         if self._logo_path and os.path.isfile(self._logo_path):
             pix = QPixmap(self._logo_path)
@@ -109,6 +135,7 @@ class InstitutionSetupDialog(QDialog):
             "mp_number": self.input_mp.text().strip(),
             "doctor_name": self.input_doctor.text().strip(),
             "logo_path": self._logo_path,
+            "watermark_path": self._watermark_path,
             "footer_text": "Documento generado por HardForms © 2026",
         }
         save_institution(cfg)
