@@ -53,17 +53,15 @@ var
 
 procedure BrowseLogo(Sender: TObject);
 var
-  fd: TOpenDialog;
+  f: string;
 begin
-  fd := TOpenDialog.Create(nil);
-  fd.Filter := 'Imágenes|*.png;*.jpg;*.jpeg;*.bmp|Todos los archivos|*.*';
-  fd.Title := 'Seleccionar logo institucional';
-  if fd.Execute then
+  if GetOpenFileName('Seleccionar logo institucional', f,
+     ExpandConstant('{src}'), 'Imágenes (*.png;*.jpg;*.bmp)|*.png;*.jpg;*.jpeg;*.bmp')
+  then
   begin
-    logoFile := fd.FileName;
-    lblLogo.Caption := 'Logo: ' + ExtractFileName(logoFile);
+    logoFile := f;
+    lblLogo.Caption := 'Logo: ' + ExtractFileName(f);
   end;
-  fd.Free;
 end;
 
 procedure InitializeWizard;
