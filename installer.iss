@@ -31,7 +31,7 @@ Name: "spanish"; MessagesFile: "compiler:Languages\Spanish.isl"
 Name: "desktopicon"; Description: "Crear acceso directo en el escritorio"; GroupDescription: "Accesos directos:"
 
 [Files]
-Source: "dist\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "dist\HardForms\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "resources\default_logo.png"; DestDir: "{app}\resources"; Flags: ignoreversion
 Source: "resources\default_logo_large.png"; DestDir: "{app}\resources"; Flags: ignoreversion
 
