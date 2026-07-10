@@ -7,7 +7,7 @@ from typing import List
 
 def _data_dir():
     if getattr(sys, 'frozen', False):
-        return os.path.join(os.path.dirname(sys.executable), "data")
+        return os.path.join(os.environ.get('APPDATA', os.path.dirname(sys.executable)), "HardForms", "data")
     return os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
 
 DB_PATH = os.environ.get("HARDFORMS_DB_PATH") or os.path.join(_data_dir(), "patients.db")

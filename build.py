@@ -23,7 +23,7 @@ for d in ["build", "dist"]:
 cmd = [
     sys.executable, "-m", "PyInstaller",
     "--windowed", "--noconfirm",
-    "--onefile",
+    "--onedir",
     "--name", APP_NAME,
     "--add-data", f"config{os.pathsep}config",
     "--add-data", f"resources{os.pathsep}resources",

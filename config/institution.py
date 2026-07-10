@@ -10,7 +10,7 @@ import sys
 
 def _data_dir():
     if getattr(sys, 'frozen', False):
-        return os.path.join(os.path.dirname(sys.executable), "data")
+        return os.path.join(os.environ.get('APPDATA', os.path.dirname(sys.executable)), "HardForms", "data")
     return os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
 
 _CONFIG_DIR = _data_dir()
