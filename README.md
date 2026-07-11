@@ -1,17 +1,17 @@
 # HardForms
 
-Aplicación de escritorio para gestión de pacientes, estudios y diagnósticos médicos. Desarrollada en Python con PyQt6.
+Aplicación de escritorio para gestión de pacientes, estudios y diagnósticos médicos. Desarrollada en Python con PyQt6. Tema oscuro. Informes PDF en escala de grises.
 
 ## Funcionalidades
 
 - **Pacientes**: alta, edición, visualización y eliminación con búsqueda por nombre, apellido o HC.
-- **Estudios**: carga de informes, imágenes adjuntas (JPG/PNG), tipo de anestesia (Local/General), drogas, escala de Boston.
+- **Estudios**: carga de informes, imágenes adjuntas (JPG/PNG), tipo de anestesia, drogas, escala de Boston, médico derivante, centro.
 - **Diagnósticos**: múltiples diagnósticos por paciente con fecha.
-- **PDF**: generación de informes con logo institucional, datos del paciente, imágenes en grilla compacta, secciones con encabezados azules.
-- **Importación**: desde archivos `.mdb` (Access 97 vía VBScript de 32 bits) y `.csv`.
+- **PDF**: dos modalidades — **Informe Completo** (varias páginas, imágenes 3 por fila) e **Informe Resumido** (una página, max. 3 imágenes). Diseño en escala de grises con logo institucional.
+- **Importación**: desde archivos `.csv`.
 - **Exportación**: a `.csv` con imágenes incluidas.
 - **Backup / Restore**: comprimido ZIP con base de datos e imágenes.
-- **Configurable**: nombre, dirección, teléfono, email, web, matrícula, médico director, logo y pie de página desde el menú *Herramientas → Configurar institución*.
+- **Configurable**: nombre, dirección, teléfono, email, web, matrícula, médico director, logo, marca de agua y pie de página desde el menú *Herramientas → Configurar institución*.
 
 ## Requisitos para desarrollo
 
@@ -24,7 +24,7 @@ Aplicación de escritorio para gestión de pacientes, estudios y diagnósticos m
 python build.py
 ```
 
-Genera `dist/HardForms.exe` (single‑file portable, ~50 MB).
+Genera `dist/HardForms/HardForms.exe` con dependencias en `dist/HardForms/_internal/`.
 
 ## Instalador
 
@@ -47,7 +47,7 @@ python main.py
 ```
 HardForms/
 ├── main.py                      # Punto de entrada
-├── build.py                     # Script de compilación PyInstaller
+├── build.py                     # Script de compilación PyInstaller (--onedir)
 ├── installer.iss                # Script de Inno Setup
 ├── requirements.txt             # Dependencias
 ├── config/
@@ -66,11 +66,11 @@ HardForms/
 │   └── widgets.py               # Componentes reutilizables (DateMaskEdit, DateItem)
 ├── reports/
 │   └── pdf_generator.py         # Generación de PDF con ReportLab
-├── importer.py                  # Importación desde MDB a SQLite
-├── export_table.vbs             # VBScript de 32 bits para exportar tablas Access
+├── importer.py                  # Importación desde CSV
 ├── resources/
 │   ├── default_logo.png         # Logo institucional por defecto
-│   └── default_logo_large.png   # Versión grande del logo
+│   ├── default_logo_large.png   # Versión grande del logo
+│   └── dark.qss                 # Tema oscuro (QSS)
 └── data/
     └── institution_config.json  # Configuración de la institución (trackeada)
 ```
@@ -78,6 +78,7 @@ HardForms/
 ## Notas
 
 - El número de historia clínica es auto‑incremental con formato `HC-00001`.
-- La base de datos SQLite se crea automáticamente en `data/patients.db` al iniciar.
-- Para importar archivos `.mdb` se necesita el driver Microsoft Jet OLEDB 4.0 (incluido en Windows de 32 bits o vía SysWOW64 en 64 bits).
+- La base de datos SQLite se crea automáticamente en `%APPDATA%\HardForms\data\patients.db` al iniciar (versión empaquetada) o en `data/patients.db` en desarrollo.
 - El logo por defecto puede reemplazarse desde *Herramientas → Configurar institución*.
+- La marca de agua se centra en el PDF al 10 % de opacidad.
+- Tema único oscuro (escala de grises).

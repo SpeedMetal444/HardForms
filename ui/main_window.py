@@ -581,7 +581,7 @@ class MainWindow(QMainWindow):
         # Texto a la izquierda
         text = QLabel(
             "<b>HardForms</b><br><br>"
-            "Versión 1.0<br><br>"
+            "Versión 1.0.1<br><br>"
             "Sistema de gestión de pacientes e informes médicos desarrollado "
             "para facilitar el registro, organización y administración de "
             "información clínica de forma rápida, segura y sencilla.<br><br>"
